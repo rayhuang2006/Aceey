@@ -261,15 +261,53 @@ const detailsPanel = document.getElementById('calendar-details-panel');
 const detailsDateTitle = document.getElementById('details-date-title');
 const detailsContestList = document.getElementById('details-contest-list');
 
-const aiSuggestionWrapper = document.getElementById('ai-suggestion-wrapper');
-const aiSuggestionText = document.getElementById('ai-suggestion-text');
-const aiLoadingText = document.getElementById('ai-loading-text');
-const aiActions = document.querySelector('.ai-actions');
-const aiSoundsGoodBtn = document.getElementById('ai-sounds-good-btn');
-const aiRefreshBtn = document.getElementById('ai-refresh-btn');
-
 let calendarActive = false;
 let contestsCache = null;
+
+// Phase 2C State
+let trainingPlans = [];
+let lastRatingSelected = "入門";
+
+// Phase 2C DOM elements
+const ratingModalOverlay = document.getElementById('rating-modal-overlay');
+const ratingCancelBtn = document.getElementById('rating-cancel-btn');
+const ratingConfirmBtn = document.getElementById('rating-confirm-btn');
+const ratingRadios = document.querySelectorAll('input[name="user_level"]');
+
+const planReviewOverlay = document.getElementById('plan-review-overlay');
+const planReviewTitle = document.getElementById('plan-review-title');
+const planReviewSubtitle = document.getElementById('plan-review-subtitle');
+const planReviewLoading = document.getElementById('plan-review-loading');
+const planReviewContent = document.getElementById('plan-review-content');
+const planReviewActions = document.getElementById('plan-review-actions');
+const planReviewCancelBtn = document.getElementById('plan-review-cancel-btn');
+const planReviewRegenerateBtn = document.getElementById('plan-review-regenerate-btn');
+const planReviewConfirmBtn = document.getElementById('plan-review-confirm-btn');
+
+const agentNotificationBar = document.getElementById('agent-notification-bar');
+const agentNotificationText = document.getElementById('agent-notification-text');
+
+let activeContextContest = null;
+let activePendingPlan = null;
+let currentActiveContests = [];
+let targetDateLabel = "";
+
+function parseDate(s) {
+    if (!s) return new Date();
+    // If it's already a Date object, return it (just in case)
+    if (s instanceof Date) return s;
+    // Clist and other APIs might return ISO strings.
+    // Ensure we treat them as UTC if they don't have timezone info,
+    // as that's safe for competition platforms.
+    if (s.includes('Z') || s.includes('+') || (s.includes('T') && s.split('-').length > 3)) {
+        return new Date(s);
+    }
+    // For "2026-04-23 12:00:00" or similar, append Z for UTC
+    if (s.includes(' ') && !s.includes('T')) {
+        return new Date(s.replace(' ', 'T') + 'Z');
+    }
+    return new Date(s.includes('T') ? (s.endsWith('Z') ? s : s + 'Z') : s);
+}
 
 calendarBtn.addEventListener('click', () => {
     calendarActive = !calendarActive;
@@ -322,6 +360,7 @@ async function loadContests() {
         // We removed the dummy test contest
 
         contestsCache = contests;
+        passiveAgentCheck();
         renderContests(contests);
     } catch (e) {
         console.error("fetch_contests failed:", e);
@@ -382,7 +421,7 @@ function renderCalendarGrid() {
     // Fast lookup for contests by day
     const monthContests = {};
     list.forEach(c => {
-        const dt = new Date(c.start_time + 'Z');
+        const dt = parseDate(c.start_time);
         if (dt.getFullYear() === currentYear && dt.getMonth() === currentMonth) {
             const day = dt.getDate();
             if (!monthContests[day]) monthContests[day] = [];
@@ -403,20 +442,42 @@ function renderCalendarGrid() {
             dayClass += ' today';
         }
         
-        // Ensure day integer respects exact bounds relative to today.
         const dtStr = new Date(currentYear, currentMonth, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' });
+        const localIsoDate = new Date(currentYear, currentMonth, day).toLocaleDateString('en-CA'); // YYYY-MM-DD
 
         let contestsHtml = '';
         const dayContests = monthContests[day] || [];
         
-        if (dayContests.length > 0) {
+        // Find training plan tasks for this day
+        const dayTrainingTasks = [];
+        trainingPlans.forEach(plan => {
+            plan.tasks.forEach(task => {
+                if (task.date === localIsoDate) {
+                    dayTrainingTasks.push(task);
+                }
+            });
+        });
+
+        if (dayContests.length > 0 || dayTrainingTasks.length > 0) {
             let barsHtml = '';
             const maxBars = 3;
-            for (let i = 0; i < Math.min(dayContests.length, maxBars); i++) {
-                barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}"></div>`;
+            let renderedBars = 0;
+
+            // Render training tasks first
+            for (let i = 0; i < dayTrainingTasks.length && renderedBars < maxBars; i++) {
+                barsHtml += `<div class="platform-bar platform-training"></div>`;
+                renderedBars++;
             }
-            if (dayContests.length > maxBars) {
-                barsHtml += `<div class="more-bars">+${dayContests.length - maxBars} more</div>`;
+
+            // Render contests
+            for (let i = 0; i < dayContests.length && renderedBars < maxBars; i++) {
+                barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}"></div>`;
+                renderedBars++;
+            }
+
+            const totalEvents = dayContests.length + dayTrainingTasks.length;
+            if (totalEvents > maxBars) {
+                barsHtml += `<div class="more-bars">+${totalEvents - maxBars} more</div>`;
             }
             contestsHtml = `<div class="cell-bars-compact">${barsHtml}</div>`;
         }
@@ -431,7 +492,7 @@ function renderCalendarGrid() {
             document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
             cell.classList.add('selected');
             
-            showDetailsPanel(dtStr, dayContests);
+            showDetailsPanel(dtStr, dayContests, dayTrainingTasks);
         });
         
         calendarGridBody.appendChild(cell);
@@ -447,35 +508,69 @@ function renderCalendarGrid() {
             calendarGridBody.appendChild(emptyCell);
         }
     }
-}
-
-let currentActiveContests = [];
-let targetDateLabel = "";
-
-function showDetailsPanel(dateStr, dayContests) {
+}function showDetailsPanel(dateStr, dayContests, dayTrainingTasks) {
     detailsPanel.style.display = 'block';
     detailsDateTitle.innerHTML = `<span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇： ${dateStr}`;
     detailsContestList.innerHTML = '';
     
-    if (dayContests.length === 0) {
+    if (dayContests.length === 0 && (!dayTrainingTasks || dayTrainingTasks.length === 0)) {
         detailsContestList.innerHTML = '<div style="color: #888; font-size: 13px;">這天沒有比賽</div>';
-        aiSuggestionWrapper.style.display = 'none';
         return;
     }
 
     currentActiveContests = dayContests;
     targetDateLabel = dateStr;
+    const now = new Date();
 
+    // Render training tasks first
+    if (dayTrainingTasks && dayTrainingTasks.length > 0) {
+        // Group by parent plan internally or just show all
+        const trainingDiv = document.createElement('div');
+        trainingDiv.className = `contest-item border-platform-training`;
+        trainingDiv.style.flexDirection = 'column';
+        trainingDiv.style.alignItems = 'flex-start';
+        
+        let headerHtml = `<div class="contest-title" style="margin-bottom: 8px;">練習計畫</div>`;
+        let tasksHtml = '';
+        dayTrainingTasks.forEach((task, idx) => {
+            const isChecked = task.completed ? 'checked' : '';
+            tasksHtml += `
+            <label class="todo-item" style="margin-left: 4px;">
+                <input type="checkbox" data-task-idx="${idx}" ${isChecked}>
+                <span class="todo-text">[${task.topic}] ${task.problem} (${task.source}) - ${task.difficulty}</span>
+            </label>`;
+        });
+        
+        trainingDiv.innerHTML = headerHtml + tasksHtml;
+        
+        // Attach handlers to checkboxes
+        trainingDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                // Find and update original reference
+                dayTrainingTasks[cb.dataset.taskIdx].completed = checked;
+            });
+        });
+
+        detailsContestList.appendChild(trainingDiv);
+    }
+
+    // Render Contests
     dayContests.forEach(c => {
         const itemDiv = document.createElement('div');
         const platformClass = getPlatformClass(c.platform);
         itemDiv.className = `contest-item border-${platformClass || 'platform-unknown'}`;
 
-        const startStr = c.startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-        const endDt = new Date(c.end_time + 'Z');
+        const startDt = c.startDt || parseDate(c.start_time);
+        const startStr = startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endDt = parseDate(c.end_time);
         const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         
         const timeLabel = `${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
+        
+        // Is future contest?
+        const isFuture = startDt > now;
+        const wantBtnHtml = isFuture ? `<button class="want-to-compete-btn">想打這場</button>` : '';
 
         itemDiv.innerHTML = `
             <div class="contest-main">
@@ -484,7 +579,10 @@ function showDetailsPanel(dateStr, dayContests) {
                 </div>
                 <div class="contest-time">${timeLabel}</div>
             </div>
-            <button class="open-link-btn" data-url="${c.url}">開啟</button>
+            <div class="contest-actions">
+                ${wantBtnHtml}
+                <button class="open-link-btn" data-url="${c.url}">開啟</button>
+            </div>
         `;
 
         itemDiv.querySelector('.open-link-btn').addEventListener('click', () => {
@@ -496,76 +594,246 @@ function showDetailsPanel(dateStr, dayContests) {
             }
         });
         
+        if (isFuture) {
+            const btn = itemDiv.querySelector('.want-to-compete-btn');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    openRatingModal(c);
+                });
+            }
+        }
+        
         detailsContestList.appendChild(itemDiv);
     });
-
-    // Invoke AI Agent
-    requestAiSuggestion();
 }
 
-async function requestAiSuggestion() {
-    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
-    if (!invoke || currentActiveContests.length === 0) return;
+// ----------------------------------------------------
+// Agent Workflow (Phase 2C)
+// ----------------------------------------------------
 
-    aiSuggestionWrapper.style.display = 'block';
-    aiLoadingText.style.display = 'block';
-    aiSuggestionText.style.display = 'none';
-    aiActions.style.display = 'none';
+function openRatingModal(contest) {
+    activeContextContest = contest;
+    ratingModalOverlay.style.display = 'flex';
+    // Remember last selection
+    ratingRadios.forEach(radio => {
+        if (radio.value === lastRatingSelected) {
+            radio.checked = true;
+        }
+    });
+}
+
+ratingCancelBtn.addEventListener('click', () => {
+    ratingModalOverlay.style.display = 'none';
+    activeContextContest = null;
+});
+
+ratingConfirmBtn.addEventListener('click', () => {
+    const selected = document.querySelector('input[name="user_level"]:checked');
+    lastRatingSelected = selected.value;
     
-    // We compute rough days_until
-    const now = new Date();
-    // Use the first contest on that day
-    const startDt = currentActiveContests[0].startDt;
-    const diffTime = startDt.getTime() - now.getTime();
-    let daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (daysUntil < 0) daysUntil = 0;
+    ratingModalOverlay.style.display = 'none';
+    planReviewOverlay.style.display = 'flex';
+    planReviewLoading.style.display = 'block';
+    planReviewContent.style.display = 'none';
+    planReviewActions.style.display = 'none';
+    
+    generateTrainingPlan();
+});
 
-    // strip the startDt complex structures for rust invoking payload constraints
-    const safePayload = currentActiveContests.map(c => ({
-        name: c.name,
-        platform: c.platform,
-        start_time: c.start_time,
-        end_time: c.end_time,
-        duration_minutes: c.duration_minutes,
-        url: c.url
-    }));
+planReviewCancelBtn.addEventListener('click', () => {
+    planReviewOverlay.style.display = 'none';
+    activePendingPlan = null;
+});
+
+planReviewRegenerateBtn.addEventListener('click', () => {
+    planReviewLoading.style.display = 'block';
+    planReviewContent.style.display = 'none';
+    planReviewActions.style.display = 'none';
+    generateTrainingPlan();
+});
+
+planReviewConfirmBtn.addEventListener('click', () => {
+    if (activePendingPlan) {
+        trainingPlans.push(activePendingPlan);
+        renderCalendarGrid();
+        passiveAgentCheck();
+    }
+    planReviewOverlay.style.display = 'none';
+    activePendingPlan = null;
+});
+
+async function generateTrainingPlan() {
+    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+    if (!invoke || !activeContextContest) return;
+
+    const contest = activeContextContest;
+    const now = new Date();
+    const diffTime = contest.startDt.getTime() - now.getTime();
+    let daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (daysUntil < 1) daysUntil = 1;
 
     try {
-        const response = await invoke('get_practice_suggestion', { contests: safePayload, daysUntil: daysUntil });
-        
-        const lines = response.split('\\n');
-        let htmlResponse = '';
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*') || trimmed.startsWith('□')) {
-                const content = trimmed.substring(1).trim();
-                htmlResponse += `
-                <label class="todo-item">
-                    <input type="checkbox">
-                    <span class="todo-text">${content}</span>
-                </label>`;
-            } else if (trimmed !== '') {
-                htmlResponse += `<div class="ai-paragraph">${trimmed}</div>`;
-            }
+        const response = await invoke('generate_training_plan', { 
+            contestName: contest.name,
+            contestPlatform: contest.platform,
+            contestDate: contest.start_time,
+            daysUntil: daysUntil,
+            userLevel: lastRatingSelected
         });
         
-        aiSuggestionText.innerHTML = htmlResponse;
+        parseReviewPlan(response, contest, daysUntil);
         
-        aiLoadingText.style.display = 'none';
-        aiSuggestionText.style.display = 'block';
-        aiActions.style.display = 'flex';
     } catch (e) {
-        console.error("AI Gen Failed:", e);
-        aiSuggestionText.textContent = "AI Suggestion unavailable. Check GROQ_API_KEY inside your .env configuration.";
-        aiLoadingText.style.display = 'none';
-        aiSuggestionText.style.display = 'block';
+        console.error("Agent failed:", e);
+        planReviewLoading.style.display = 'none';
+        planReviewContent.innerHTML = `<div style="color: #ff5252;">產生計畫失敗，請檢查 API Key 是否正確。</div>`;
+        planReviewContent.style.display = 'block';
+        planReviewActions.style.display = 'flex';
+        document.getElementById('plan-review-confirm-btn').style.display = 'none';
     }
 }
 
-aiSoundsGoodBtn.addEventListener('click', () => {
-    aiSuggestionWrapper.style.display = 'none';
-});
+function parseReviewPlan(rawResponse, contest, daysUntil) {
+    const lines = rawResponse.split('\\n');
+    let groupedByDay = {};
+    let dateMapping = {}; // mapping Day N to absolute ISODates
+    
+    const today = new Date();
 
-aiRefreshBtn.addEventListener('click', () => {
-    requestAiSuggestion();
-});
+    lines.forEach(line => {
+        if (!line.includes('|')) return;
+        const parts = line.split('|').map(s => s.trim());
+        if (parts.length < 5) return;
+        
+        // Format: DAY 1 | Name | Source | Topic | Diff
+        const dayStr = parts[0];
+        let dayNum = 1;
+        const match = dayStr.match(/\\d+/);
+        if (match) dayNum = parseInt(match[0]);
+        
+        if (!groupedByDay[dayNum]) {
+            groupedByDay[dayNum] = [];
+            // Map day offset relative to start, working backwards or forwards safely
+            // For MVP, just assume today + (dayNum - 1)
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + (dayNum - 1));
+            dateMapping[dayNum] = {
+                iso: targetDate.toLocaleDateString('en-CA'),
+                label: targetDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' })
+            };
+        }
+        
+        groupedByDay[dayNum].push({
+            date: dateMapping[dayNum].iso,
+            problem: parts[1],
+            source: parts[2],
+            topic: parts[3],
+            difficulty: parts[4],
+            completed: false
+        });
+    });
+
+    const contestDateLabel = contest.startDt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' });
+    planReviewTitle.textContent = `備賽計畫：${contest.name}`;
+    planReviewSubtitle.textContent = `比賽日期：${contestDateLabel}   你的程度：${lastRatingSelected}`;
+
+    let reviewHtml = '';
+    let flatTasksList = [];
+
+    // Keys sorted logically
+    const sortedDays = Object.keys(groupedByDay).map(Number).sort((a,b)=>a-b);
+    
+    sortedDays.forEach(day => {
+        reviewHtml += `<div class="plan-day-header">Day ${day} — ${dateMapping[day].label}</div>`;
+        groupedByDay[day].forEach(task => {
+            flatTasksList.push(task);
+            reviewHtml += `<div style="font-size: 13px; margin-bottom: 4px; color: #ccc;">□ [${task.topic}] ${task.problem} (${task.source}) - ${task.difficulty}</div>`;
+        });
+    });
+
+    // Cache the pending plan
+    activePendingPlan = {
+        contestName: contest.name,
+        tasks: flatTasksList
+    };
+
+    planReviewLoading.style.display = 'none';
+    planReviewContent.innerHTML = reviewHtml;
+    planReviewContent.style.display = 'block';
+    
+    planReviewActions.style.display = 'flex';
+    document.getElementById('plan-review-confirm-btn').style.display = 'block';
+}
+
+function passiveAgentCheck() {
+    if (!contestsCache) return;
+    const now = new Date();
+    
+    let upcomingMatchesCount = 0;
+    
+    // Check next 3 days
+    contestsCache.forEach(c => {
+        const startDt = parseDate(c.start_time);
+        if (startDt > now) {
+            const diffTime = startDt.getTime() - now.getTime();
+            const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (daysUntil <= 3) {
+                // Check if this contest already has a generated plan
+                const hasPlan = trainingPlans.some(p => p.contestName === c.name);
+                if (!hasPlan) {
+                    upcomingMatchesCount++;
+                }
+            }
+        }
+    });
+
+    if (upcomingMatchesCount > 0) {
+        agentNotificationText.textContent = `3天內有 ${upcomingMatchesCount} 場比賽尚未規劃，要安排練習嗎？`;
+        agentNotificationBar.style.display = 'block';
+        
+        // Ensure handler removes old bound ones by re-assigning onclick instead of multiple eventListeners
+        agentNotificationBar.onclick = () => {
+            const firstUnplanned = contestsCache.find(c => {
+                const sDt = parseDate(c.start_time);
+                const diffTime = sDt.getTime() - now.getTime();
+                const dU = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return sDt > now && dU <= 3 && !trainingPlans.some(p => p.contestName === c.name);
+            });
+            if (firstUnplanned) {
+                const targetDt = parseDate(firstUnplanned.start_time);
+                if (targetDt.getFullYear() === currentYear && targetDt.getMonth() === currentMonth) {
+                    const d = targetDt.getDate();
+                    const cells = document.querySelectorAll('.calendar-cell');
+                    // Find cell matching text matching this day
+                    for (const cell of cells) {
+                        const dateDiv = cell.querySelector('.cell-date');
+                        if (dateDiv && dateDiv.textContent.trim() === String(d)) {
+                            // Scroll and trigger
+                            cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            cell.click();
+                            break;
+                        }
+                    }
+                } else {
+                    currentYear = targetDt.getFullYear();
+                    currentMonth = targetDt.getMonth();
+                    renderCalendarGrid();
+                    const cells = document.querySelectorAll('.calendar-cell');
+                    for (const cell of cells) {
+                        const dateDiv = cell.querySelector('.cell-date');
+                        if (dateDiv && dateDiv.textContent.trim() === String(targetDt.getDate())) {
+                            cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            cell.click();
+                            break;
+                        }
+                    }
+                }
+            }
+        };
+
+    } else {
+        agentNotificationBar.style.display = 'none';
+        agentNotificationBar.onclick = null;
+    }
+}

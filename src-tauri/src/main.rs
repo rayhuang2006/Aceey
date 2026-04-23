@@ -21,7 +21,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             compile_and_run, 
             calendar::fetch_contests,
-            calendar::get_practice_suggestion
+            calendar::generate_training_plan
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

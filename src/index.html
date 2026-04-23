@@ -84,6 +84,11 @@
             </div>
             <button id="calendar-refresh-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> 重新整理</button>
         </div>
+        <div id="agent-notification-bar" style="display: none;">
+            <div class="notification-content">
+                <span class="info-icon">i</span> <span id="agent-notification-text">3天內有X場比賽尚未規劃，要安排練習嗎？</span>
+            </div>
+        </div>
         <div id="calendar-content">
             <div id="calendar-loading" style="display: none;">載入比賽中...</div>
             <div id="calendar-error" style="display: none; color: #ff5252; padding: 10px; border: 1px solid #ff5252; border-radius: 4px; margin-bottom: 20px;"></div>
@@ -101,18 +106,41 @@
             <div id="calendar-details-panel" style="display: none;">
                 <h3 id="details-date-title"><span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇：Date</h3>
                 <div id="details-contest-list"></div>
-                
-                <div id="ai-suggestion-wrapper" style="display: none;">
-                    <div class="ai-header"><span class="ai-badge">AI</span> 練習建議</div>
-                    <div id="ai-suggestion-box">
-                        <div id="ai-loading-text">分析比賽中...</div>
-                        <div id="ai-suggestion-text" style="display: none;"></div>
-                        <div class="ai-actions" style="display: none;">
-                            <button id="ai-sounds-good-btn">好的</button>
-                            <button id="ai-refresh-btn">換一個建議</button>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Modal (Hidden by default) -->
+    <div id="rating-modal-overlay" style="display: none;">
+        <div id="rating-modal">
+            <h3>你目前的程度大概在哪？</h3>
+            <div class="rating-options">
+                <label><input type="radio" name="user_level" value="新手" data-score="< 800"> 新手 (Rating &lt; 800)</label>
+                <label><input type="radio" name="user_level" value="入門" data-score="800 - 1200" checked> 入門 (800 - 1200)</label>
+                <label><input type="radio" name="user_level" value="進階" data-score="1200 - 1600"> 進階 (1200 - 1600)</label>
+                <label><input type="radio" name="user_level" value="高手" data-score="1600 - 2000"> 高手 (1600 - 2000)</label>
+                <label><input type="radio" name="user_level" value="大佬" data-score="2000+"> 大佬 (2000+)</label>
+            </div>
+            <div class="modal-actions">
+                <button id="rating-cancel-btn">取消</button>
+                <button id="rating-confirm-btn">產生計畫</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Review Panel Overlay (Hidden by default) -->
+    <div id="plan-review-overlay" style="display: none;">
+        <div id="plan-review-panel">
+            <h3 id="plan-review-title">備賽計畫：</h3>
+            <div class="plan-review-subtitle" id="plan-review-subtitle">比賽日期：你的程度：</div>
+            
+            <div id="plan-review-loading" style="display: none;">分析比賽並產生計畫中...</div>
+            <div id="plan-review-content" style="display: none;"></div>
+            
+            <div class="modal-actions" id="plan-review-actions" style="display: none;">
+                <button id="plan-review-cancel-btn">取消</button>
+                <button id="plan-review-regenerate-btn">重新產生</button>
+                <button id="plan-review-confirm-btn" class="primary-btn">確認計畫</button>
             </div>
         </div>
     </div>

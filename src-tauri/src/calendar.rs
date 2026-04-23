@@ -61,48 +61,62 @@ pub async fn fetch_contests() -> Result<Vec<Contest>, String> {
 }
 
 #[tauri::command]
-pub async fn get_practice_suggestion(contests: Vec<Contest>, days_until: i64) -> Result<String, String> {
+pub async fn generate_training_plan(
+    contest_name: String,
+    contest_platform: String,
+    _contest_date: String,
+    days_until: i64,
+    user_level: String,
+) -> Result<String, String> {
     let _ = dotenvy::from_path("../.env");
-    let api_key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
-
-    let contest_info: Vec<String> = contests.iter().map(|c| {
-        format!("{} on {} ({}min)", c.name, c.platform, c.duration_minutes)
-    }).collect();
+    let key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
 
     let prompt = format!(
-        "You are a competitive programming coach helping a student prepare for upcoming contests. Respond in Traditional Chinese (繁體中文).\n\nThe student has these contests in {} days:\n{}\n\nBased on the contest platform and format, suggest exactly 3 specific practice problems. For each problem, provide:\n1. Problem name and source (e.g. \"AtCoder ABC 300 C - Cross\")\n2. Topic category (e.g. 貪心, DP, 圖論, etc.)\n3. Estimated difficulty (簡單/中等/困難)\n\nFormat each problem on one line like:\n- [topic] problem_name (source) - difficulty\n\nKeep your response under 120 words. Do not use markdown formatting. Do not add extra explanation.",
+        "You are a competitive programming coach creating a training plan. Respond in Traditional Chinese (繁體中文).\n\nA student (level: {}) wants to prepare for \"{}\" on {} in {} days.\n\nCreate a day-by-day practice plan. For each day, suggest 2-3 specific problems with:\n- Day number (Day 1, Day 2, etc.)\n- Problem name and source (use real problem names from {} or Codeforces)\n- Topic tag (e.g. 貪心, DP, 圖論, 數學, 模擬, 排序, etc.)\n- Difficulty relative to the student's level (簡單/中等/挑戰)\n\nIf there are more than 5 days until the contest, only plan the last 5 days.\nIf there is only 1 day, suggest 2 easy warm-up problems.\n\nOutput format (STRICTLY follow this, one problem per line):\nDAY 1|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 1|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 2|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 2|problem_name|source_url_or_platform|topic_tag|difficulty\n\nDo not add any other text, explanation or markdown. Only output lines in the format above.",
+        user_level,
+        contest_name,
+        contest_platform,
         days_until,
-        contest_info.join("\n")
+        contest_platform
     );
 
     let body = serde_json::json!({
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "You are a helpful competitive programming coach. Always respond in Traditional Chinese (繁體中文). Be concise and specific."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
-        "max_tokens": 200
+        "max_completion_tokens": 1024,
     });
+
+    let body_str = serde_json::to_string(&body).map_err(|e| format!("JSON error: {}", e))?;
 
     let output = std::process::Command::new("curl")
         .arg("-s")
-        .arg("-X").arg("POST")
         .arg("https://api.groq.com/openai/v1/chat/completions")
-        .arg("-H").arg(format!("Authorization: Bearer {}", api_key.trim()))
-        .arg("-H").arg("Content-Type: application/json")
-        .arg("-d").arg(body.to_string())
+        .arg("-H")
+        .arg(format!("Authorization: Bearer {}", key))
+        .arg("-H")
+        .arg("Content-Type: application/json")
+        .arg("-d")
+        .arg(&body_str)
         .output()
-        .map_err(|e| format!("curl failed: {}", e))?;
+        .map_err(|e| format!("Failed to curl groq API: {}", e))?;
 
-    let body_str = String::from_utf8_lossy(&output.stdout).to_string();
-    let response: serde_json::Value = serde_json::from_str(&body_str)
-        .map_err(|e| format!("JSON parse error on Groq response: {}", e))?;
+    if !output.status.success() {
+        return Err(format!("curl groq returned error status: {:?}", output.status));
+    }
 
-    let message = response["choices"][0]["message"]["content"]
+    let response_str = String::from_utf8(output.stdout).unwrap_or_default();
+    
+    // Parse the JSON response
+    let parsed: serde_json::Value = serde_json::from_str(&response_str)
+        .map_err(|e| format!("Failed to parse response JSON: {}", e))?;
+
+    let content = parsed["choices"][0]["message"]["content"]
         .as_str()
-        .unwrap_or("Could not generate suggestion. Please try again.")
+        .unwrap_or("No suggestion returned.")
         .to_string();
 
-    Ok(message)
+    Ok(content)
 }
