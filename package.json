@@ -1,0 +1,11 @@
+{
+  "name": "aceey",
+  "version": "0.1.0",
+  "description": "Aceey - Desktop IDE for competitive programming",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

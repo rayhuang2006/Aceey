@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aceey IDE</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Load Monaco Editor Styles -->
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
+</head>
+<body>
+    <div id="toolbar">
+        <div class="brand">Aceey</div>
+        <div class="actions">
+            <button id="run-btn"><span class="icon">▶</span> Run</button>
+            <button id="clear-btn">Clear</button>
+            <button id="settings-btn">⚙</button>
+        </div>
+    </div>
+    
+    <div id="main-content">
+        <div id="top-panels">
+            <div id="problem-panel">
+                <div class="panel-header">Problem Description</div>
+                <div class="panel-content" contenteditable="true" id="problem-text">
+                    Paste problem description here...
+                </div>
+            </div>
+            
+            <div id="resizer-horizontal" class="resizer"></div>
+            
+            <div id="editor-panel">
+                <div class="panel-header">Solution.cpp</div>
+                <div id="monaco-container"></div>
+            </div>
+        </div>
+        
+        <div id="resizer-vertical" class="resizer-v"></div>
+        
+        <div id="testcase-panel">
+            <div class="panel-header">
+                Test Cases
+                <div class="testcase-actions">
+                    <button id="add-tc-btn">+ Add Test Case</button>
+                </div>
+            </div>
+            <div id="tc-tabs">
+                <!-- Tabs will be rendered here dynamically -->
+            </div>
+            <div id="tc-content">
+                <div class="tc-boxes">
+                    <div class="tc-box">
+                        <label>Input</label>
+                        <textarea id="tc-input"></textarea>
+                    </div>
+                    <div class="tc-box">
+                        <label>Expected Output</label>
+                        <textarea id="tc-expected"></textarea>
+                    </div>
+                    <div class="tc-box">
+                        <label>Actual Output <span id="tc-time"></span></label>
+                        <textarea id="tc-actual" readonly></textarea>
+                    </div>
+                    <div class="tc-box verdict-box">
+                        <label>Verdict</label>
+                        <div id="tc-verdict" class="verdict-none">-</div>
+                        <pre id="tc-error" style="display:none;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required script for Monaco -->
+    <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+    
+    <!-- Load Tauri API if available natively, else standard JS -->
+    <script>
+        // Use global window.__TAURI__ if loaded, or we'll import it in main.js
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
