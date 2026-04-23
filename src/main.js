@@ -242,3 +242,173 @@ document.addEventListener('mouseup', () => {
 // Initialization
 renderTabs();
 loadCurrentTab();
+
+// ============================================
+// Phase 2: Calendar Logic
+// ============================================
+
+const calendarBtn = document.getElementById('calendar-btn');
+const calendarView = document.getElementById('calendar-view');
+const calendarRefreshBtn = document.getElementById('calendar-refresh-btn');
+const calendarLoading = document.getElementById('calendar-loading');
+const calendarEmpty = document.getElementById('calendar-empty');
+const calendarError = document.getElementById('calendar-error');
+const calendarGroups = document.getElementById('calendar-groups');
+
+let calendarActive = false;
+let contestsCache = null;
+
+calendarBtn.addEventListener('click', () => {
+    calendarActive = !calendarActive;
+    if (calendarActive) {
+        mainContent.style.display = 'none';
+        calendarView.style.display = 'flex';
+        calendarBtn.style.backgroundColor = 'var(--bg-panel)';
+        if (!contestsCache) {
+            loadContests();
+        }
+    } else {
+        mainContent.style.display = 'flex';
+        calendarView.style.display = 'none';
+        calendarBtn.style.backgroundColor = 'transparent';
+    }
+});
+
+calendarRefreshBtn.addEventListener('click', () => {
+    loadContests();
+});
+
+function formatDuration(minutes) {
+    if (minutes < 60) return `${minutes}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h${m}m` : `${h}h`;
+}
+
+function getPlatformClass(platformUrl) {
+    if (platformUrl.includes('codeforces')) return 'platform-codeforces';
+    if (platformUrl.includes('leetcode')) return 'platform-leetcode';
+    if (platformUrl.includes('atcoder')) return 'platform-atcoder';
+    if (platformUrl.includes('codechef')) return 'platform-codechef';
+    return '';
+}
+
+async function loadContests() {
+    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+    if (!invoke) return;
+
+    console.log("Loading contests via backend curl...");
+    calendarLoading.style.display = 'block';
+    calendarEmpty.style.display = 'none';
+    calendarError.style.display = 'none';
+    calendarGroups.innerHTML = '';
+
+    try {
+        const contests = await invoke('fetch_contests');
+        console.log("calendar response received:", contests);
+
+        // --- TEMPORARY TEST DATA: Prepend a dummy contest to test UI layout ---
+        const fakeContest = {
+            name: "Dummy UI Test Contest (Hardcoded)",
+            platform: "codeforces.com",
+            start_time: new Date(Date.now() + 3600000).toISOString().split('.')[0], // yields "YYYY-MM-DDTHH:MM:SS"
+            end_time: new Date(Date.now() + 10800000).toISOString().split('.')[0], 
+            duration_minutes: 120,
+            url: "https://codeforces.com"
+        };
+        contests.unshift(fakeContest);
+        // ---------------------------------------------------------------------
+
+        contestsCache = contests;
+        renderContests(contests);
+    } catch (e) {
+        console.error("fetch_contests failed:", e);
+        calendarError.textContent = "Error fetching API: " + e;
+        calendarError.style.display = 'block';
+        calendarLoading.style.display = 'none';
+    }
+}
+
+function renderContests(contests) {
+    calendarLoading.style.display = 'none';
+    if (!contests || contests.length === 0) {
+        calendarEmpty.style.display = 'block';
+        return;
+    }
+
+    const groups = {};
+
+    const now = new Date();
+    const todayStr = now.toDateString();
+    
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toDateString();
+
+    contests.forEach(c => {
+        // Parse UTC start and end
+        const startDt = new Date(c.start_time + 'Z');
+        let dateKey = startDt.toDateString();
+        
+        // Formulate header
+        let headerLabel = dateKey;
+        if (dateKey === todayStr) headerLabel = "Today";
+        else if (dateKey === tomorrowStr) headerLabel = "Tomorrow";
+        else {
+            const opts = { month: 'short', day: 'numeric', weekday: 'short' };
+            headerLabel = startDt.toLocaleDateString(undefined, opts); // e.g. "Apr 26 (Sat)"
+        }
+
+        if (!groups[headerLabel]) groups[headerLabel] = [];
+        groups[headerLabel].push({ ...c, startDt });
+    });
+
+    for (const [header, list] of Object.entries(groups)) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'date-group';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'date-group-header';
+        headerDiv.textContent = header;
+        groupDiv.appendChild(headerDiv);
+
+        list.forEach(c => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'contest-item';
+
+            const startStr = c.startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endDt = new Date(c.end_time + 'Z');
+            const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            
+            // Reformat header string for specific contest item (e.g. "Apr 25, 19:35 - 21:35")
+            const itemDate = c.startDt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const timeLabel = `${itemDate}, ${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
+
+            itemDiv.innerHTML = `
+                <div class="contest-main">
+                    <div class="contest-title">
+                        <span class="platform-dot ${getPlatformClass(c.platform)}"></span>
+                        ${c.name}
+                    </div>
+                    <div class="contest-time">${timeLabel}</div>
+                </div>
+                <button class="open-link-btn" data-url="${c.url}">Open ↗</button>
+            `;
+
+            // Attach open native browser event mapping
+            const openBtn = itemDiv.querySelector('.open-link-btn');
+            openBtn.addEventListener('click', () => {
+                const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+                if (invoke) {
+                    invoke('plugin:shell|open', { path: c.url });
+                } else {
+                    window.open(c.url, '_blank');
+                }
+            });
+
+            groupDiv.appendChild(itemDiv);
+        });
+
+        calendarGroups.appendChild(groupDiv);
+    }
+}

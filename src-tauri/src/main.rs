@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod compiler;
+mod calendar;
 
 use compiler::{TestCase, TestResult};
 
@@ -16,7 +17,11 @@ async fn compile_and_run(
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![compile_and_run])
+        .plugin(tauri_plugin_shell::init())
+        .invoke_handler(tauri::generate_handler![
+            compile_and_run, 
+            calendar::fetch_contests
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

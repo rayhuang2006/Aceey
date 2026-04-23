@@ -300,3 +300,118 @@ button#run-btn .icon {
   color: #888;
   margin-left: 8px;
 }
+
+/* Calendar View */
+#calendar-view {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-dark);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-header h2 {
+  font-size: 18px;
+  color: var(--text-heading);
+}
+
+#calendar-refresh-btn {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+
+#calendar-refresh-btn:hover {
+  background: var(--bg-panel);
+}
+
+.date-group {
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.date-group-header {
+  background-color: var(--bg-panel);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+  color: #aaa;
+}
+
+.contest-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--bg-dark);
+}
+
+.contest-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contest-item:hover {
+  background-color: #252526;
+}
+
+.contest-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contest-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-heading);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contest-time {
+  font-size: 12px;
+  color: #888;
+  padding-left: 18px; /* space for dot */
+}
+
+.platform-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.platform-codeforces { background-color: #FF6D00; }
+.platform-atcoder { background-color: #2196F3; }
+.platform-leetcode { background-color: #4CAF50; }
+.platform-codechef { background-color: #795548; }
+
+.open-link-btn {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.open-link-btn:hover {
+  background: var(--bg-panel);
+  color: #fff;
+}

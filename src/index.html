@@ -14,6 +14,7 @@
         <div class="actions">
             <button id="run-btn"><span class="icon">▶</span> Run</button>
             <button id="clear-btn">Clear</button>
+            <button id="calendar-btn">📅 Calendar</button>
             <button id="settings-btn">⚙</button>
         </div>
     </div>
@@ -68,6 +69,20 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Calendar View (Hidden by default) -->
+    <div id="calendar-view" style="display: none;">
+        <div class="calendar-header">
+            <h2>📅 Upcoming Contests</h2>
+            <button id="calendar-refresh-btn">Refresh 🔄</button>
+        </div>
+        <div id="calendar-content">
+            <div id="calendar-loading" style="display: none;">Loading contests...</div>
+            <div id="calendar-empty" style="display: none;">No upcoming contests found. Try refreshing.</div>
+            <div id="calendar-error" style="display: none; color: #ff5252; padding: 10px; border: 1px solid #ff5252; border-radius: 4px; margin-bottom: 20px;"></div>
+            <div id="calendar-groups"></div>
         </div>
     </div>
 
