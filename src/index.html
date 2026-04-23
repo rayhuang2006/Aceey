@@ -14,7 +14,9 @@
         <div class="actions">
             <button id="run-btn"><span class="icon">▶</span> Run</button>
             <button id="clear-btn">Clear</button>
-            <button id="calendar-btn">📅 Calendar</button>
+            <button id="calendar-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Calendar
+            </button>
             <button id="settings-btn">⚙</button>
         </div>
     </div>
@@ -77,10 +79,10 @@
         <div class="calendar-header">
             <div class="calendar-nav">
                 <button id="calendar-prev-btn">&lt; 上月</button>
-                <h2 id="calendar-month-title">📅 Month Year</h2>
+                <h2 id="calendar-month-title">Month Year</h2>
                 <button id="calendar-next-btn">下月 &gt;</button>
             </div>
-            <button id="calendar-refresh-btn">重新整理 🔄</button>
+            <button id="calendar-refresh-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> 重新整理</button>
         </div>
         <div id="calendar-content">
             <div id="calendar-loading" style="display: none;">載入比賽中...</div>
@@ -97,17 +99,17 @@
 
             <!-- Details Panel for Selected Date -->
             <div id="calendar-details-panel" style="display: none;">
-                <h3 id="details-date-title">📋 已選擇：Date</h3>
+                <h3 id="details-date-title"><span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇：Date</h3>
                 <div id="details-contest-list"></div>
                 
                 <div id="ai-suggestion-wrapper" style="display: none;">
-                    <div class="ai-header">🤖 AI 練習建議</div>
+                    <div class="ai-header"><span class="ai-badge">AI</span> 練習建議</div>
                     <div id="ai-suggestion-box">
                         <div id="ai-loading-text">分析比賽中...</div>
                         <div id="ai-suggestion-text" style="display: none;"></div>
                         <div class="ai-actions" style="display: none;">
-                            <button id="ai-sounds-good-btn">👍 好的</button>
-                            <button id="ai-refresh-btn">🔄 換一個建議</button>
+                            <button id="ai-sounds-good-btn">好的</button>
+                            <button id="ai-refresh-btn">換一個建議</button>
                         </div>
                     </div>
                 </div>

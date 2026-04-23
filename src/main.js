@@ -367,7 +367,7 @@ function renderCalendarGrid() {
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
     
-    calendarMonthTitle.textContent = `📅 ${firstDay.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`;
+    calendarMonthTitle.textContent = `${firstDay.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`;
     
     const startOffset = firstDay.getDay(); // 0 (Sun) to 6 (Sat)
     const totalDays = lastDay.getDate();
@@ -410,15 +410,15 @@ function renderCalendarGrid() {
         const dayContests = monthContests[day] || [];
         
         if (dayContests.length > 0) {
-            let dots = '';
-            const maxDots = 3;
-            for (let i = 0; i < Math.min(dayContests.length, maxDots); i++) {
-                dots += `<span class="platform-dot ${getPlatformClass(dayContests[i].platform)}"></span>`;
+            let barsHtml = '';
+            const maxBars = 3;
+            for (let i = 0; i < Math.min(dayContests.length, maxBars); i++) {
+                barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}"></div>`;
             }
-            if (dayContests.length > maxDots) {
-                dots += `<span class="more-dots">...</span>`;
+            if (dayContests.length > maxBars) {
+                barsHtml += `<div class="more-bars">+${dayContests.length - maxBars} more</div>`;
             }
-            contestsHtml = `<div class="cell-dots-compact">${dots}</div>`;
+            contestsHtml = `<div class="cell-bars-compact">${barsHtml}</div>`;
         }
         
         cell.innerHTML = `
@@ -454,7 +454,7 @@ let targetDateLabel = "";
 
 function showDetailsPanel(dateStr, dayContests) {
     detailsPanel.style.display = 'block';
-    detailsDateTitle.textContent = `📋 已選擇： ${dateStr}`;
+    detailsDateTitle.innerHTML = `<span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇： ${dateStr}`;
     detailsContestList.innerHTML = '';
     
     if (dayContests.length === 0) {
@@ -468,7 +468,8 @@ function showDetailsPanel(dateStr, dayContests) {
 
     dayContests.forEach(c => {
         const itemDiv = document.createElement('div');
-        itemDiv.className = 'contest-item';
+        const platformClass = getPlatformClass(c.platform);
+        itemDiv.className = `contest-item border-${platformClass || 'platform-unknown'}`;
 
         const startStr = c.startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         const endDt = new Date(c.end_time + 'Z');
@@ -479,12 +480,11 @@ function showDetailsPanel(dateStr, dayContests) {
         itemDiv.innerHTML = `
             <div class="contest-main">
                 <div class="contest-title">
-                    <span class="platform-dot ${getPlatformClass(c.platform)}"></span>
                     ${c.name}
                 </div>
                 <div class="contest-time">${timeLabel}</div>
             </div>
-            <button class="open-link-btn" data-url="${c.url}">開啟 ↗</button>
+            <button class="open-link-btn" data-url="${c.url}">開啟</button>
         `;
 
         itemDiv.querySelector('.open-link-btn').addEventListener('click', () => {
@@ -532,7 +532,24 @@ async function requestAiSuggestion() {
 
     try {
         const response = await invoke('get_practice_suggestion', { contests: safePayload, daysUntil: daysUntil });
-        aiSuggestionText.textContent = response;
+        
+        const lines = response.split('\\n');
+        let htmlResponse = '';
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*') || trimmed.startsWith('□')) {
+                const content = trimmed.substring(1).trim();
+                htmlResponse += `
+                <label class="todo-item">
+                    <input type="checkbox">
+                    <span class="todo-text">${content}</span>
+                </label>`;
+            } else if (trimmed !== '') {
+                htmlResponse += `<div class="ai-paragraph">${trimmed}</div>`;
+            }
+        });
+        
+        aiSuggestionText.innerHTML = htmlResponse;
         
         aiLoadingText.style.display = 'none';
         aiSuggestionText.style.display = 'block';

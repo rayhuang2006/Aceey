@@ -70,7 +70,7 @@ pub async fn get_practice_suggestion(contests: Vec<Contest>, days_until: i64) ->
     }).collect();
 
     let prompt = format!(
-        "You are a competitive programming coach. Respond in Traditional Chinese (繁體中文). A student has these contests coming up in {} days:\n{}\n\nGive a brief, actionable practice suggestion (2-3 bullet points max). Focus on what topics to practice based on the contest platform and format. Be specific about algorithm topics. Keep it under 80 words. Do NOT use markdown formatting.",
+        "You are a competitive programming coach helping a student prepare for upcoming contests. Respond in Traditional Chinese (繁體中文).\n\nThe student has these contests in {} days:\n{}\n\nBased on the contest platform and format, suggest exactly 3 specific practice problems. For each problem, provide:\n1. Problem name and source (e.g. \"AtCoder ABC 300 C - Cross\")\n2. Topic category (e.g. 貪心, DP, 圖論, etc.)\n3. Estimated difficulty (簡單/中等/困難)\n\nFormat each problem on one line like:\n- [topic] problem_name (source) - difficulty\n\nKeep your response under 120 words. Do not use markdown formatting. Do not add extra explanation.",
         days_until,
         contest_info.join("\n")
     );
