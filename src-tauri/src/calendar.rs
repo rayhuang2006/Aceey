@@ -72,13 +72,14 @@ pub async fn generate_training_plan(
     let key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
 
     let prompt = format!(
-        "You are a competitive programming coach creating a training plan. Respond in Traditional Chinese (繁體中文).\n\nA student (level: {}) wants to prepare for \"{}\" on {} in {} days.\n\nCreate a day-by-day practice plan. For each day, suggest 2-3 specific problems with:\n- Day number (Day 1, Day 2, etc.)\n- Problem name and source (use real problem names from {} or Codeforces)\n- Topic tag (e.g. 貪心, DP, 圖論, 數學, 模擬, 排序, etc.)\n- Difficulty relative to the student's level (簡單/中等/挑戰)\n\nIf there are more than 5 days until the contest, only plan the last 5 days.\nIf there is only 1 day, suggest 2 easy warm-up problems.\n\nOutput format (STRICTLY follow this, one problem per line):\nDAY 1|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 1|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 2|problem_name|source_url_or_platform|topic_tag|difficulty\nDAY 2|problem_name|source_url_or_platform|topic_tag|difficulty\n\nDo not add any other text, explanation or markdown. Only output lines in the format above.",
+        "You are a competitive programming coach. Respond in Traditional Chinese (繁體中文).\n\nA student (level: {}) wants to prepare for \"{}\" on {} in {} days.\n\nCreate a 5-day practice plan using ONLY problems from the CSES Problem Set (cses.fi). These are real CSES problems you must use:\n\nSorting: Distinct Numbers, Apartments, Ferris Wheel, Concert Tickets, Restaurant Customers, Movie Festival, Sum of Two Values, Collecting Numbers, Playlist\nGreedy: Stick Lengths, Missing Coin Sum, Tasks and Deadlines, Movie Festival II\nDP: Dice Combinations, Minimizing Coins, Coin Combinations I, Coin Combinations II, Removing Digits, Grid Paths, Book Shop, Array Description, Counting Towers, Edit Distance\nGraph: Counting Rooms, Labyrinth, Building Roads, Message Route, Building Teams, Round Trip, Shortest Routes I, Shortest Routes II, Flight Discount\nMath: Exponentiation, Counting Divisors, Counting Divisors, Common Divisors, Sum of Divisors, Binomial Coefficients\n\nPick problems appropriate for the student's level. For each day, suggest 2-3 problems.\n\nOutput format (STRICTLY one problem per line, NO other text):\nDAY 1|problem_name|task_id|topic_tag|difficulty\nDAY 1|problem_name|task_id|topic_tag|difficulty\nDAY 2|problem_name|task_id|topic_tag|difficulty\n\nWhere task_id is the CSES problem ID number (e.g. Distinct Numbers = 1621, Dice Combinations = 1633, Counting Rooms = 1748). You MUST provide the correct CSES task ID for each problem.",
         user_level,
         contest_name,
         contest_platform,
-        days_until,
-        contest_platform
+        days_until
     );
+
+    println!("GROQ PROMPT: {}", prompt);
 
     let body = serde_json::json!({
         "model": "llama-3.3-70b-versatile",
@@ -117,6 +118,8 @@ pub async fn generate_training_plan(
         .as_str()
         .unwrap_or("No suggestion returned.")
         .to_string();
+
+    println!("GROQ RAW RESPONSE: {}", content);
 
     Ok(content)
 }

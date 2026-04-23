@@ -112,6 +112,15 @@ function loadCurrentTab() {
     }
 }
 
+window.openExternal = function(url) {
+    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+    if (invoke) {
+        invoke('plugin:shell|open', { path: url });
+    } else {
+        window.open(url, '_blank');
+    }
+};
+
 function addTestCase() {
     saveCurrentTab();
     const newId = testCases.length > 0 ? Math.max(...testCases.map(t => t.id)) + 1 : 1;
@@ -535,9 +544,9 @@ function renderCalendarGrid() {
         dayTrainingTasks.forEach((task, idx) => {
             const isChecked = task.completed ? 'checked' : '';
             tasksHtml += `
-            <label class="todo-item" style="margin-left: 4px;">
+            <label class="todo-item" style="margin-left: 4px; display: block; margin-bottom: 4px;">
                 <input type="checkbox" data-task-idx="${idx}" ${isChecked}>
-                <span class="todo-text">[${task.topic}] ${task.problem} (${task.source}) - ${task.difficulty}</span>
+                <span class="todo-text">[${task.topic}] <a href="#" style="color: var(--accent-green); text-decoration: none;" onclick="openExternal('https://cses.fi/problemset/task/${task.source}')">${task.problem}</a> (${task.source}) - ${task.difficulty}</span>
             </label>`;
         });
         
@@ -586,12 +595,7 @@ function renderCalendarGrid() {
         `;
 
         itemDiv.querySelector('.open-link-btn').addEventListener('click', () => {
-            const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
-            if (invoke) {
-                invoke('plugin:shell|open', { path: c.url });
-            } else {
-                window.open(c.url, '_blank');
-            }
+            openExternal(c.url);
         });
         
         if (isFuture) {
@@ -694,33 +698,39 @@ async function generateTrainingPlan() {
 }
 
 function parseReviewPlan(rawResponse, contest, daysUntil) {
-    const lines = rawResponse.split('\\n');
+    console.log("GROQ RAW RESPONSE IN JS:", rawResponse);
+    const lines = rawResponse.split('\n');
     let groupedByDay = {};
-    let dateMapping = {}; // mapping Day N to absolute ISODates
+    let dateMapping = {}; 
     
-    const today = new Date();
+    // Use the user's recommended formula: contest_date - days_until + day_number - 1
+    const contestDt = contest.startDt || parseDate(contest.start_time);
 
     lines.forEach(line => {
         if (!line.includes('|')) return;
         const parts = line.split('|').map(s => s.trim());
         if (parts.length < 5) return;
         
+        console.log("Parsing line:", line);
+        
         // Format: DAY 1 | Name | Source | Topic | Diff
-        const dayStr = parts[0];
+        const dayStr = parts[0].toUpperCase();
         let dayNum = 1;
-        const match = dayStr.match(/\\d+/);
+        const match = dayStr.match(/\d+/);
         if (match) dayNum = parseInt(match[0]);
         
         if (!groupedByDay[dayNum]) {
             groupedByDay[dayNum] = [];
-            // Map day offset relative to start, working backwards or forwards safely
-            // For MVP, just assume today + (dayNum - 1)
-            const targetDate = new Date(today);
-            targetDate.setDate(today.getDate() + (dayNum - 1));
+            
+            const targetDate = new Date(contestDt);
+            // formula: contest_date - days_until + day_number - 1
+            targetDate.setDate(targetDate.getDate() - daysUntil + (dayNum - 1));
+            
             dateMapping[dayNum] = {
                 iso: targetDate.toLocaleDateString('en-CA'),
                 label: targetDate.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' })
             };
+            console.log(`Day ${dayNum} mapped to:`, dateMapping[dayNum].iso);
         }
         
         groupedByDay[dayNum].push({
@@ -743,11 +753,12 @@ function parseReviewPlan(rawResponse, contest, daysUntil) {
     // Keys sorted logically
     const sortedDays = Object.keys(groupedByDay).map(Number).sort((a,b)=>a-b);
     
-    sortedDays.forEach(day => {
+        sortedDays.forEach(day => {
         reviewHtml += `<div class="plan-day-header">Day ${day} — ${dateMapping[day].label}</div>`;
         groupedByDay[day].forEach(task => {
             flatTasksList.push(task);
-            reviewHtml += `<div style="font-size: 13px; margin-bottom: 4px; color: #ccc;">□ [${task.topic}] ${task.problem} (${task.source}) - ${task.difficulty}</div>`;
+            const link = `https://cses.fi/problemset/task/${task.source}`;
+            reviewHtml += `<div style="font-size: 13px; margin-bottom: 4px; color: #ccc;">□ [${task.topic}] <a href="#" style="color: var(--accent-green); text-decoration: none;" onclick="openExternal('${link}')">${task.problem}</a> (${task.source}) - ${task.difficulty}</div>`;
         });
     });
 
