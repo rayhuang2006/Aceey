@@ -353,6 +353,15 @@ function getPlatformClass(platformUrl) {
     return '';
 }
 
+function getPlatformAbbr(platform) {
+    const p = (platform || '').toLowerCase();
+    if (p.includes('codeforces')) return 'CF';
+    if (p.includes('atcoder')) return 'AT';
+    if (p.includes('leetcode')) return 'LC';
+    if (p.includes('codechef')) return 'CC';
+    return p.substring(0, 2).toUpperCase();
+}
+
 async function loadContests() {
     const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
     if (!invoke) return;
@@ -469,26 +478,31 @@ function renderCalendarGrid() {
 
         if (dayContests.length > 0 || dayTrainingTasks.length > 0) {
             let barsHtml = '';
+            let dotsHtml = '';
             const maxBars = 3;
             let renderedBars = 0;
 
-            // Render training tasks first
-            for (let i = 0; i < dayTrainingTasks.length && renderedBars < maxBars; i++) {
-                barsHtml += `<div class="platform-bar platform-training"></div>`;
-                renderedBars++;
-            }
-
-            // Render contests
+            // Render contests as bars (16px high with text)
             for (let i = 0; i < dayContests.length && renderedBars < maxBars; i++) {
-                barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}"></div>`;
+                const abbr = getPlatformAbbr(dayContests[i].platform);
+                barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}">${abbr}</div>`;
                 renderedBars++;
             }
 
-            const totalEvents = dayContests.length + dayTrainingTasks.length;
-            if (totalEvents > maxBars) {
-                barsHtml += `<div class="more-bars">+${totalEvents - maxBars} more</div>`;
+            if (dayContests.length > maxBars) {
+                barsHtml += `<div class="more-bars">+${dayContests.length - maxBars} more</div>`;
             }
-            contestsHtml = `<div class="cell-bars-compact">${barsHtml}</div>`;
+
+            // Render training tasks as purple dots
+            if (dayTrainingTasks.length > 0) {
+                dotsHtml = '<div class="cell-dots-container">';
+                for (let i = 0; i < dayTrainingTasks.length; i++) {
+                    dotsHtml += `<div class="training-dot"></div>`;
+                }
+                dotsHtml += '</div>';
+            }
+
+            contestsHtml = `<div class="cell-bars-compact">${barsHtml}${dotsHtml}</div>`;
         }
         
         cell.innerHTML = `
