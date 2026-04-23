@@ -75,14 +75,43 @@
     <!-- Calendar View (Hidden by default) -->
     <div id="calendar-view" style="display: none;">
         <div class="calendar-header">
-            <h2>📅 Upcoming Contests</h2>
-            <button id="calendar-refresh-btn">Refresh 🔄</button>
+            <div class="calendar-nav">
+                <button id="calendar-prev-btn">&lt; 上月</button>
+                <h2 id="calendar-month-title">📅 Month Year</h2>
+                <button id="calendar-next-btn">下月 &gt;</button>
+            </div>
+            <button id="calendar-refresh-btn">重新整理 🔄</button>
         </div>
         <div id="calendar-content">
-            <div id="calendar-loading" style="display: none;">Loading contests...</div>
-            <div id="calendar-empty" style="display: none;">No upcoming contests found. Try refreshing.</div>
+            <div id="calendar-loading" style="display: none;">載入比賽中...</div>
             <div id="calendar-error" style="display: none; color: #ff5252; padding: 10px; border: 1px solid #ff5252; border-radius: 4px; margin-bottom: 20px;"></div>
-            <div id="calendar-groups"></div>
+            
+            <div id="calendar-grid-container">
+                <div class="calendar-grid-header">
+                    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                </div>
+                <div id="calendar-grid-body" class="calendar-grid">
+                    <!-- Grid cells injected here -->
+                </div>
+            </div>
+
+            <!-- Details Panel for Selected Date -->
+            <div id="calendar-details-panel" style="display: none;">
+                <h3 id="details-date-title">📋 已選擇：Date</h3>
+                <div id="details-contest-list"></div>
+                
+                <div id="ai-suggestion-wrapper" style="display: none;">
+                    <div class="ai-header">🤖 AI 練習建議</div>
+                    <div id="ai-suggestion-box">
+                        <div id="ai-loading-text">分析比賽中...</div>
+                        <div id="ai-suggestion-text" style="display: none;"></div>
+                        <div class="ai-actions" style="display: none;">
+                            <button id="ai-sounds-good-btn">👍 好的</button>
+                            <button id="ai-refresh-btn">🔄 換一個建議</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -16,7 +16,7 @@ struct ClistResponse {
     objects: Vec<ClistContest>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Contest {
     pub name: String,
     pub platform: String,
@@ -58,4 +58,51 @@ pub async fn fetch_contests() -> Result<Vec<Contest>, String> {
     }).collect();
 
     Ok(contests)
+}
+
+#[tauri::command]
+pub async fn get_practice_suggestion(contests: Vec<Contest>, days_until: i64) -> Result<String, String> {
+    let _ = dotenvy::from_path("../.env");
+    let api_key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
+
+    let contest_info: Vec<String> = contests.iter().map(|c| {
+        format!("{} on {} ({}min)", c.name, c.platform, c.duration_minutes)
+    }).collect();
+
+    let prompt = format!(
+        "You are a competitive programming coach. Respond in Traditional Chinese (繁體中文). A student has these contests coming up in {} days:\n{}\n\nGive a brief, actionable practice suggestion (2-3 bullet points max). Focus on what topics to practice based on the contest platform and format. Be specific about algorithm topics. Keep it under 80 words. Do NOT use markdown formatting.",
+        days_until,
+        contest_info.join("\n")
+    );
+
+    let body = serde_json::json!({
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": "You are a helpful competitive programming coach. Always respond in Traditional Chinese (繁體中文). Be concise and specific."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 200
+    });
+
+    let output = std::process::Command::new("curl")
+        .arg("-s")
+        .arg("-X").arg("POST")
+        .arg("https://api.groq.com/openai/v1/chat/completions")
+        .arg("-H").arg(format!("Authorization: Bearer {}", api_key.trim()))
+        .arg("-H").arg("Content-Type: application/json")
+        .arg("-d").arg(body.to_string())
+        .output()
+        .map_err(|e| format!("curl failed: {}", e))?;
+
+    let body_str = String::from_utf8_lossy(&output.stdout).to_string();
+    let response: serde_json::Value = serde_json::from_str(&body_str)
+        .map_err(|e| format!("JSON parse error on Groq response: {}", e))?;
+
+    let message = response["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap_or("Could not generate suggestion. Please try again.")
+        .to_string();
+
+    Ok(message)
 }

@@ -20,7 +20,8 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             compile_and_run, 
-            calendar::fetch_contests
+            calendar::fetch_contests,
+            calendar::get_practice_suggestion
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

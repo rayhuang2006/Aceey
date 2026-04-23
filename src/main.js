@@ -251,9 +251,22 @@ const calendarBtn = document.getElementById('calendar-btn');
 const calendarView = document.getElementById('calendar-view');
 const calendarRefreshBtn = document.getElementById('calendar-refresh-btn');
 const calendarLoading = document.getElementById('calendar-loading');
-const calendarEmpty = document.getElementById('calendar-empty');
 const calendarError = document.getElementById('calendar-error');
-const calendarGroups = document.getElementById('calendar-groups');
+const calendarGridBody = document.getElementById('calendar-grid-body');
+const calendarMonthTitle = document.getElementById('calendar-month-title');
+const calendarPrevBtn = document.getElementById('calendar-prev-btn');
+const calendarNextBtn = document.getElementById('calendar-next-btn');
+
+const detailsPanel = document.getElementById('calendar-details-panel');
+const detailsDateTitle = document.getElementById('details-date-title');
+const detailsContestList = document.getElementById('details-contest-list');
+
+const aiSuggestionWrapper = document.getElementById('ai-suggestion-wrapper');
+const aiSuggestionText = document.getElementById('ai-suggestion-text');
+const aiLoadingText = document.getElementById('ai-loading-text');
+const aiActions = document.querySelector('.ai-actions');
+const aiSoundsGoodBtn = document.getElementById('ai-sounds-good-btn');
+const aiRefreshBtn = document.getElementById('ai-refresh-btn');
 
 let calendarActive = false;
 let contestsCache = null;
@@ -299,25 +312,14 @@ async function loadContests() {
 
     console.log("Loading contests via backend curl...");
     calendarLoading.style.display = 'block';
-    calendarEmpty.style.display = 'none';
     calendarError.style.display = 'none';
-    calendarGroups.innerHTML = '';
+    if (calendarGridBody) calendarGridBody.innerHTML = '';
 
     try {
         const contests = await invoke('fetch_contests');
         console.log("calendar response received:", contests);
 
-        // --- TEMPORARY TEST DATA: Prepend a dummy contest to test UI layout ---
-        const fakeContest = {
-            name: "Dummy UI Test Contest (Hardcoded)",
-            platform: "codeforces.com",
-            start_time: new Date(Date.now() + 3600000).toISOString().split('.')[0], // yields "YYYY-MM-DDTHH:MM:SS"
-            end_time: new Date(Date.now() + 10800000).toISOString().split('.')[0], 
-            duration_minutes: 120,
-            url: "https://codeforces.com"
-        };
-        contests.unshift(fakeContest);
-        // ---------------------------------------------------------------------
+        // We removed the dummy test contest
 
         contestsCache = contests;
         renderContests(contests);
@@ -329,86 +331,224 @@ async function loadContests() {
     }
 }
 
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+calendarPrevBtn.addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendarGrid();
+});
+
+calendarNextBtn.addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    renderCalendarGrid();
+});
+
 function renderContests(contests) {
     calendarLoading.style.display = 'none';
-    if (!contests || contests.length === 0) {
-        calendarEmpty.style.display = 'block';
+    detailsPanel.style.display = 'none';
+    
+    // We already cached it to contestsCache, so just draw the grid
+    renderCalendarGrid();
+}
+
+function renderCalendarGrid() {
+    const list = contestsCache || [];
+    calendarGridBody.innerHTML = '';
+    
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    
+    calendarMonthTitle.textContent = `📅 ${firstDay.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`;
+    
+    const startOffset = firstDay.getDay(); // 0 (Sun) to 6 (Sat)
+    const totalDays = lastDay.getDate();
+    
+    // Fill empty cells before the 1st
+    for (let i = 0; i < startOffset; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell empty-cell';
+        calendarGridBody.appendChild(emptyCell);
+    }
+    
+    // Fast lookup for contests by day
+    const monthContests = {};
+    list.forEach(c => {
+        const dt = new Date(c.start_time + 'Z');
+        if (dt.getFullYear() === currentYear && dt.getMonth() === currentMonth) {
+            const day = dt.getDate();
+            if (!monthContests[day]) monthContests[day] = [];
+            monthContests[day].push({ ...c, startDt: dt });
+        }
+    });
+
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
+    const todayDate = now.getDate();
+
+    for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        
+        let dayClass = 'cell-date';
+        if (isCurrentMonth && day === todayDate) {
+            dayClass += ' today';
+        }
+        
+        // Ensure day integer respects exact bounds relative to today.
+        const dtStr = new Date(currentYear, currentMonth, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' });
+
+        let contestsHtml = '';
+        const dayContests = monthContests[day] || [];
+        
+        if (dayContests.length > 0) {
+            let dots = '';
+            const maxDots = 3;
+            for (let i = 0; i < Math.min(dayContests.length, maxDots); i++) {
+                dots += `<span class="platform-dot ${getPlatformClass(dayContests[i].platform)}"></span>`;
+            }
+            if (dayContests.length > maxDots) {
+                dots += `<span class="more-dots">...</span>`;
+            }
+            contestsHtml = `<div class="cell-dots-compact">${dots}</div>`;
+        }
+        
+        cell.innerHTML = `
+            <div class="${dayClass}">${day}</div>
+            <div class="cell-contests">${contestsHtml}</div>
+        `;
+        
+        cell.addEventListener('click', () => {
+            // Discard previous selections
+            document.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
+            cell.classList.add('selected');
+            
+            showDetailsPanel(dtStr, dayContests);
+        });
+        
+        calendarGridBody.appendChild(cell);
+    }
+    
+    // Calculate total rows mapping
+    const totalCells = startOffset + totalDays;
+    const remain = totalCells % 7;
+    if (remain !== 0) {
+        for (let i = 0; i < (7 - remain); i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-cell empty-cell';
+            calendarGridBody.appendChild(emptyCell);
+        }
+    }
+}
+
+let currentActiveContests = [];
+let targetDateLabel = "";
+
+function showDetailsPanel(dateStr, dayContests) {
+    detailsPanel.style.display = 'block';
+    detailsDateTitle.textContent = `📋 已選擇： ${dateStr}`;
+    detailsContestList.innerHTML = '';
+    
+    if (dayContests.length === 0) {
+        detailsContestList.innerHTML = '<div style="color: #888; font-size: 13px;">這天沒有比賽</div>';
+        aiSuggestionWrapper.style.display = 'none';
         return;
     }
 
-    const groups = {};
+    currentActiveContests = dayContests;
+    targetDateLabel = dateStr;
 
-    const now = new Date();
-    const todayStr = now.toDateString();
-    
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toDateString();
+    dayContests.forEach(c => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'contest-item';
 
-    contests.forEach(c => {
-        // Parse UTC start and end
-        const startDt = new Date(c.start_time + 'Z');
-        let dateKey = startDt.toDateString();
+        const startStr = c.startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endDt = new Date(c.end_time + 'Z');
+        const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         
-        // Formulate header
-        let headerLabel = dateKey;
-        if (dateKey === todayStr) headerLabel = "Today";
-        else if (dateKey === tomorrowStr) headerLabel = "Tomorrow";
-        else {
-            const opts = { month: 'short', day: 'numeric', weekday: 'short' };
-            headerLabel = startDt.toLocaleDateString(undefined, opts); // e.g. "Apr 26 (Sat)"
-        }
+        const timeLabel = `${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
 
-        if (!groups[headerLabel]) groups[headerLabel] = [];
-        groups[headerLabel].push({ ...c, startDt });
+        itemDiv.innerHTML = `
+            <div class="contest-main">
+                <div class="contest-title">
+                    <span class="platform-dot ${getPlatformClass(c.platform)}"></span>
+                    ${c.name}
+                </div>
+                <div class="contest-time">${timeLabel}</div>
+            </div>
+            <button class="open-link-btn" data-url="${c.url}">開啟 ↗</button>
+        `;
+
+        itemDiv.querySelector('.open-link-btn').addEventListener('click', () => {
+            const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+            if (invoke) {
+                invoke('plugin:shell|open', { path: c.url });
+            } else {
+                window.open(c.url, '_blank');
+            }
+        });
+        
+        detailsContestList.appendChild(itemDiv);
     });
 
-    for (const [header, list] of Object.entries(groups)) {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'date-group';
+    // Invoke AI Agent
+    requestAiSuggestion();
+}
 
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'date-group-header';
-        headerDiv.textContent = header;
-        groupDiv.appendChild(headerDiv);
+async function requestAiSuggestion() {
+    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+    if (!invoke || currentActiveContests.length === 0) return;
 
-        list.forEach(c => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'contest-item';
+    aiSuggestionWrapper.style.display = 'block';
+    aiLoadingText.style.display = 'block';
+    aiSuggestionText.style.display = 'none';
+    aiActions.style.display = 'none';
+    
+    // We compute rough days_until
+    const now = new Date();
+    // Use the first contest on that day
+    const startDt = currentActiveContests[0].startDt;
+    const diffTime = startDt.getTime() - now.getTime();
+    let daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (daysUntil < 0) daysUntil = 0;
 
-            const startStr = c.startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            const endDt = new Date(c.end_time + 'Z');
-            const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            
-            // Reformat header string for specific contest item (e.g. "Apr 25, 19:35 - 21:35")
-            const itemDate = c.startDt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-            const timeLabel = `${itemDate}, ${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
+    // strip the startDt complex structures for rust invoking payload constraints
+    const safePayload = currentActiveContests.map(c => ({
+        name: c.name,
+        platform: c.platform,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        duration_minutes: c.duration_minutes,
+        url: c.url
+    }));
 
-            itemDiv.innerHTML = `
-                <div class="contest-main">
-                    <div class="contest-title">
-                        <span class="platform-dot ${getPlatformClass(c.platform)}"></span>
-                        ${c.name}
-                    </div>
-                    <div class="contest-time">${timeLabel}</div>
-                </div>
-                <button class="open-link-btn" data-url="${c.url}">Open ↗</button>
-            `;
-
-            // Attach open native browser event mapping
-            const openBtn = itemDiv.querySelector('.open-link-btn');
-            openBtn.addEventListener('click', () => {
-                const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
-                if (invoke) {
-                    invoke('plugin:shell|open', { path: c.url });
-                } else {
-                    window.open(c.url, '_blank');
-                }
-            });
-
-            groupDiv.appendChild(itemDiv);
-        });
-
-        calendarGroups.appendChild(groupDiv);
+    try {
+        const response = await invoke('get_practice_suggestion', { contests: safePayload, daysUntil: daysUntil });
+        aiSuggestionText.textContent = response;
+        
+        aiLoadingText.style.display = 'none';
+        aiSuggestionText.style.display = 'block';
+        aiActions.style.display = 'flex';
+    } catch (e) {
+        console.error("AI Gen Failed:", e);
+        aiSuggestionText.textContent = "AI Suggestion unavailable. Check GROQ_API_KEY inside your .env configuration.";
+        aiLoadingText.style.display = 'none';
+        aiSuggestionText.style.display = 'block';
     }
 }
+
+aiSoundsGoodBtn.addEventListener('click', () => {
+    aiSuggestionWrapper.style.display = 'none';
+});
+
+aiRefreshBtn.addEventListener('click', () => {
+    requestAiSuggestion();
+});
