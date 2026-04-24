@@ -26,6 +26,7 @@ require(['vs/editor/editor.main'], function () {
         minimap: { enabled: false },
         wordWrap: 'off',
         lineNumbers: 'on',
+        glyphMargin: true,
         automaticLayout: true
     });
 
@@ -152,6 +153,9 @@ async function runCode() {
     if (!editor) return;
     saveCurrentTab();
     
+    // Clear any existing debug UI before new run
+    if (typeof clearDebugMode === 'function') clearDebugMode();
+    
     const sourceCode = editor.getValue();
     const payloadTestCases = testCases.map(tc => ({
         input: tc.input,
@@ -193,15 +197,235 @@ async function runCode() {
                 testCases[index].error = res.error_message;
             });
         }
+        
+        loadCurrentTab();
+        renderTabs();
+
+        // Debug Agent Hook
+        const failedCase = testCases.find(tc => tc.verdict !== 'AC');
+        if (failedCase) {
+            tcVerdict.textContent += " (AI Analyzing...)";
+            const problemText = document.getElementById('problem-text').innerText || '';
+            const sourceCodeToAnalyze = editor.getValue();
+            
+            try {
+                const analysis = await invoke('analyze_error', {
+                    sourceCode: sourceCodeToAnalyze,
+                    problemDescription: problemText,
+                    errorType: failedCase.verdict,
+                    compilerOutput: failedCase.error || '',
+                    testInput: failedCase.input || '',
+                    expectedOutput: failedCase.expected_output || '',
+                    actualOutput: failedCase.actual_output || '',
+                });
+                console.log("DEBUG AGENT RAW RESPONSE:", analysis);
+                console.log("DEBUG AGENT PARSED:", parseDebugResponse(analysis));
+                applyDebugDecorations(analysis);
+            } catch(e) {
+                console.error("Debug Agent failed:", e);
+                // Clear the analyzing text by reloading the tab
+                loadCurrentTab();
+            }
+        }
+        
     } catch (e) {
         alert("Failed to invoke backend: " + e);
+        loadCurrentTab();
+        renderTabs();
     }
-    
-    loadCurrentTab();
-    renderTabs();
 }
 
 document.getElementById('run-btn').addEventListener('click', runCode);
+
+// --- Debug Agent Functions ---
+let currentDecorations = [];
+let activeWidgets = [];
+let debugIssueQueue = [];
+let currentDebugIndex = 0;
+let isGeneralHintExpanded = false;
+let currentGeneralIssue = null;
+
+window.clearDebugMode = function() {
+    const editorDom = document.querySelector('.monaco-editor');
+    if (editorDom) editorDom.classList.remove('debug-mode-active');
+    currentDecorations = editor.deltaDecorations(currentDecorations, []);
+    activeWidgets.forEach(w => {
+        if (w.parentNode) w.parentNode.removeChild(w);
+        else if (editor.removeContentWidget) editor.removeContentWidget(w); // Backup for legacy
+    });
+    activeWidgets = [];
+    const bar = document.getElementById('debug-general-hint-bar');
+    if (bar) bar.remove();
+    debugIssueQueue = [];
+    currentDebugIndex = 0;
+    isGeneralHintExpanded = false;
+    currentGeneralIssue = null;
+}
+
+function activateDebugMode() {
+    const editorDom = document.querySelector('.monaco-editor');
+    if (editorDom) editorDom.classList.add('debug-mode-active');
+}
+
+function parseDebugResponse(raw) {
+    if (!editor) return [];
+    const model = editor.getModel();
+    return raw.split('\n')
+        .filter(line => line.startsWith('LINE|'))
+        .map(line => {
+            const parts = line.split('|').map(s => s.trim());
+            return {
+                lineNumber: parseInt(parts[1]),
+                description: parts[2] || '',
+                suggestion: parts[3] || ''
+            };
+        })
+        .filter(item => {
+            if (isNaN(item.lineNumber)) return false;
+            if (item.lineNumber === 0) return true; // General logic error
+            
+            // Check if within range
+            if (item.lineNumber > model.getLineCount()) return false;
+            
+            const lineContent = model.getLineContent(item.lineNumber).trim();
+            
+            // Filter out empty lines or boilerplate
+            if (lineContent === "") return false;
+            if (lineContent.startsWith('#include')) return false;
+            if (lineContent.includes('using namespace std;')) return false;
+            if (lineContent.includes('ios::sync_with_stdio(false);')) return false;
+            if (lineContent.includes('cin.tie(nullptr);')) return false;
+            if (lineContent.includes('return 0;')) return false;
+            
+            return true;
+        });
+}
+
+function applyDebugDecorations(rawResponse) {
+    const allIssues = parseDebugResponse(rawResponse);
+    if (allIssues.length === 0) return;
+    
+    debugIssueQueue = allIssues.filter(i => i.lineNumber > 0);
+    currentGeneralIssue = allIssues.find(i => i.lineNumber === 0);
+    currentDebugIndex = 0;
+    
+    if (debugIssueQueue.length > 0 || currentGeneralIssue) {
+        activateDebugMode();
+        if (debugIssueQueue.length > 0) {
+            showDebugIssue(0);
+        }
+        if (currentGeneralIssue) {
+            showGeneralDebugHint(currentGeneralIssue);
+        }
+    }
+    
+    loadCurrentTab();
+}
+
+function showDebugIssue(index) {
+    // Clear previous widget/highlight
+    activeWidgets.forEach(w => {
+        if (w.parentNode) w.parentNode.removeChild(w);
+    });
+    activeWidgets = [];
+    currentDecorations = editor.deltaDecorations(currentDecorations, []);
+    
+    const issue = debugIssueQueue[index];
+    if (!issue) return;
+    
+    // Highlight error line
+    currentDecorations = editor.deltaDecorations([], [{
+        range: new monaco.Range(issue.lineNumber, 1, issue.lineNumber, 1),
+        options: {
+            isWholeLine: true,
+            className: 'debug-error-line',
+            inlineClassName: 'debug-error-inline',
+            glyphMarginClassName: 'debug-error-glyph',
+            overviewRuler: {
+                color: '#f44336',
+                position: monaco.editor.OverviewRulerLane.Full
+            }
+        }
+    }]);
+    
+    addDebugWidget(issue.lineNumber, issue.description, issue.suggestion, index);
+    editor.revealLineInCenter(issue.lineNumber);
+}
+
+window.nextDebugIssue = function() {
+    currentDebugIndex++;
+    if (currentDebugIndex < debugIssueQueue.length) {
+        showDebugIssue(currentDebugIndex);
+    } else {
+        // Last issue dismissed. If no general hint, clear. 
+        // If general hint exists, just remove line decorations but keep dimming?
+        // User said: "After the last 'OK', clear debug mode entirely"
+        clearDebugMode();
+    }
+}
+
+function addDebugWidget(lineNumber, description, suggestion, index) {
+    const widgetNode = document.createElement('div');
+    widgetNode.className = 'debug-widget';
+    const total = debugIssueQueue.length;
+    
+    widgetNode.innerHTML = `
+        <div class="debug-widget-content">
+            <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px;">Issue ${index + 1} of ${total}</div>
+            <div class="debug-widget-desc">${description}</div>
+            <div class="debug-widget-suggestion">${suggestion}</div>
+            <button class="debug-widget-dismiss" onclick="nextDebugIssue()">${index + 1 < total ? 'Next Issue' : 'OK, Fixed'}</button>
+        </div>
+    `;
+
+    // Position the widget near the error line using overlay logic
+    const lineTop = editor.getTopForLineNumber(lineNumber);
+    const scrollTop = editor.getScrollTop();
+    const editorDom = editor.getDomNode();
+    
+    widgetNode.style.position = 'absolute';
+    widgetNode.style.left = '60px'; // Offset for line numbers/gutter
+    widgetNode.style.top = (lineTop - scrollTop + 25) + 'px';
+    widgetNode.style.zIndex = '1000';
+    
+    editorDom.appendChild(widgetNode);
+    activeWidgets.push(widgetNode);
+}
+
+function showGeneralDebugHint(issue) {
+    let bar = document.getElementById('debug-general-hint-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'debug-general-hint-bar';
+        bar.className = 'general-hint-bar collapsed';
+        bar.onclick = toggleGeneralHint;
+        const editorPanel = document.getElementById('editor-panel');
+        editorPanel.appendChild(bar);
+    }
+    
+    if (isGeneralHintExpanded) {
+        bar.className = 'general-hint-bar expanded';
+        bar.innerHTML = `
+            <div>▼ 整體建議</div>
+            <div class="general-hint-content">
+                <div style="color: #ff8a80; font-weight: bold; margin-bottom: 4px;">${issue.description}</div>
+                <div>${issue.suggestion}</div>
+            </div>
+        `;
+    } else {
+        bar.className = 'general-hint-bar collapsed';
+        bar.innerHTML = `▶ 有整體建議 (點擊展開)`;
+    }
+}
+
+window.toggleGeneralHint = function() {
+    isGeneralHintExpanded = !isGeneralHintExpanded;
+    if (currentGeneralIssue) {
+        showGeneralDebugHint(currentGeneralIssue);
+    }
+}
+// --- End Debug Agent ---
+
 
 // Layout Resizing
 const resizerH = document.getElementById('resizer-horizontal');

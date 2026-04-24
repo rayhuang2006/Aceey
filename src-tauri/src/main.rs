@@ -2,6 +2,7 @@
 
 mod compiler;
 mod calendar;
+mod debug_agent;
 
 use compiler::{TestCase, TestResult};
 
@@ -21,7 +22,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             compile_and_run, 
             calendar::fetch_contests,
-            calendar::generate_training_plan
+            calendar::generate_training_plan,
+            debug_agent::analyze_error
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
