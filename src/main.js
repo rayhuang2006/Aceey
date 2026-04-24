@@ -17,7 +17,12 @@ let testCases = [
 let activeTcId = 1;
 
 // Initialize Monaco when loaded
-require(['vs/editor/editor.main'], function () {
+let DebugZoneWidget;
+
+require(['vs/editor/editor.main'], function (monacoInstance) {
+    // Use the passed instance or the global one
+    const monaco = monacoInstance || window.monaco;
+    
     editor = monaco.editor.create(document.getElementById('monaco-container'), {
         value: DEFAULT_CPP,
         language: 'cpp',
@@ -34,6 +39,40 @@ require(['vs/editor/editor.main'], function () {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
         runCode();
     });
+
+    // ZoneWidget Class for Debug Hints
+    try {
+        const BaseZoneWidget = monaco.editor.ZoneWidget;
+        if (BaseZoneWidget) {
+            DebugZoneWidget = class extends BaseZoneWidget {
+                constructor(editor, index, total, description, suggestion) {
+                    super(editor, {
+                        showFrame: false,
+                        showArrow: true,
+                        frameColor: '#f44336',
+                        keepEditorSelection: true
+                    });
+                    this.data = { index, total, description, suggestion };
+                }
+                _fillContainer(container) {
+                    container.style.backgroundColor = 'transparent';
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'debug-zone-wrapper';
+                    wrapper.innerHTML = `
+                        <div class="debug-widget-content" style="margin: 0; width: 100%; max-width: none;">
+                            <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px;">Issue ${this.data.index + 1} of ${this.data.total}</div>
+                            <div class="debug-widget-desc">${this.data.description}</div>
+                            <div class="debug-widget-suggestion">${this.data.suggestion}</div>
+                            <button class="debug-widget-dismiss" onclick="nextDebugIssue()">${this.data.index + 1 < this.data.total ? 'Next Issue' : 'OK, Fixed'}</button>
+                        </div>
+                    `;
+                    container.appendChild(wrapper);
+                }
+            };
+        }
+    } catch (e) {
+        console.error("Failed to initialize DebugZoneWidget:", e);
+    }
 });
 
 // UI Elements
@@ -250,8 +289,8 @@ window.clearDebugMode = function() {
     if (editorDom) editorDom.classList.remove('debug-mode-active');
     currentDecorations = editor.deltaDecorations(currentDecorations, []);
     activeWidgets.forEach(w => {
-        if (w.parentNode) w.parentNode.removeChild(w);
-        else if (editor.removeContentWidget) editor.removeContentWidget(w); // Backup for legacy
+        if (w.dispose) w.dispose();
+        else if (w.parentNode) w.parentNode.removeChild(w);
     });
     activeWidgets = [];
     const bar = document.getElementById('debug-general-hint-bar');
@@ -325,7 +364,8 @@ function applyDebugDecorations(rawResponse) {
 function showDebugIssue(index) {
     // Clear previous widget/highlight
     activeWidgets.forEach(w => {
-        if (w.parentNode) w.parentNode.removeChild(w);
+        if (w.dispose) w.dispose();
+        else if (w.parentNode) w.parentNode.removeChild(w);
     });
     activeWidgets = [];
     currentDecorations = editor.deltaDecorations(currentDecorations, []);
@@ -349,7 +389,6 @@ function showDebugIssue(index) {
     }]);
     
     addDebugWidget(issue.lineNumber, issue.description, issue.suggestion, index);
-    editor.revealLineInCenter(issue.lineNumber);
 }
 
 window.nextDebugIssue = function() {
@@ -365,31 +404,46 @@ window.nextDebugIssue = function() {
 }
 
 function addDebugWidget(lineNumber, description, suggestion, index) {
-    const widgetNode = document.createElement('div');
-    widgetNode.className = 'debug-widget';
     const total = debugIssueQueue.length;
     
-    widgetNode.innerHTML = `
-        <div class="debug-widget-content">
-            <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px;">Issue ${index + 1} of ${total}</div>
-            <div class="debug-widget-desc">${description}</div>
-            <div class="debug-widget-suggestion">${suggestion}</div>
-            <button class="debug-widget-dismiss" onclick="nextDebugIssue()">${index + 1 < total ? 'Next Issue' : 'OK, Fixed'}</button>
-        </div>
-    `;
-
-    // Position the widget near the error line using overlay logic
-    const lineTop = editor.getTopForLineNumber(lineNumber);
-    const scrollTop = editor.getScrollTop();
-    const editorDom = editor.getDomNode();
-    
-    widgetNode.style.position = 'absolute';
-    widgetNode.style.left = '60px'; // Offset for line numbers/gutter
-    widgetNode.style.top = (lineTop - scrollTop + 25) + 'px';
-    widgetNode.style.zIndex = '1000';
-    
-    editorDom.appendChild(widgetNode);
-    activeWidgets.push(widgetNode);
+    if (DebugZoneWidget) {
+        const zoneWidget = new DebugZoneWidget(editor, index, total, description, suggestion);
+        zoneWidget.show({ lineNumber: lineNumber, column: 1 }, 6);
+        activeWidgets.push(zoneWidget);
+        
+        setTimeout(() => {
+            if (editor) editor.revealLineInCenter(lineNumber);
+        }, 50);
+    } else {
+        // Fallback to ContentWidget if ZoneWidget is not available
+        const widgetNode = document.createElement('div');
+        widgetNode.className = 'debug-widget';
+        widgetNode.innerHTML = `
+            <div class="debug-widget-content">
+                <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px;">Issue ${index + 1} of ${total} (Fallback)</div>
+                <div class="debug-widget-desc">${description}</div>
+                <div class="debug-widget-suggestion">${suggestion}</div>
+                <button class="debug-widget-dismiss" onclick="nextDebugIssue()">${index + 1 < total ? 'Next Issue' : 'OK, Fixed'}</button>
+            </div>
+        `;
+        
+        const widget = {
+            domNode: widgetNode,
+            getId: () => 'debug-widget-' + index,
+            getDomNode: () => widgetNode,
+            getPosition: () => ({
+                position: { lineNumber: lineNumber, column: 1 },
+                preference: [monaco.editor.ContentWidgetPositionPreference.BELOW]
+            })
+        };
+        
+        editor.addContentWidget(widget);
+        activeWidgets.push({
+            dispose: () => editor.removeContentWidget(widget)
+        });
+        
+        editor.revealLineInCenter(lineNumber);
+    }
 }
 
 function showGeneralDebugHint(issue) {
