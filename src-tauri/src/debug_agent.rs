@@ -1,5 +1,3 @@
-use std::env;
-
 #[tauri::command]
 pub async fn analyze_error(
     source_code: String,
@@ -9,10 +7,8 @@ pub async fn analyze_error(
     test_input: String,
     expected_output: String,
     actual_output: String,
+    groq_api_key: String,
 ) -> Result<String, String> {
-    let _ = dotenvy::from_path("../.env");
-    let groq_key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
-
     let numbered_code: String = source_code
         .lines()
         .enumerate()
@@ -59,7 +55,7 @@ If the error is a general logic problem not tied to one line, use 0 as line_numb
         .arg("-s")
         .arg("-X").arg("POST")
         .arg("https://api.groq.com/openai/v1/chat/completions")
-        .arg("-H").arg(format!("Authorization: Bearer {}", groq_key.trim()))
+        .arg("-H").arg(format!("Authorization: Bearer {}", groq_api_key.trim()))
         .arg("-H").arg("Content-Type: application/json")
         .arg("-d").arg(&body_str)
         .output()
@@ -70,17 +66,22 @@ If the error is a general logic problem not tied to one line, use 0 as line_numb
     }
 
     let response_str = String::from_utf8(output.stdout).unwrap_or_default();
+    println!("DEBUG AGENT RAW RESPONSE: {}", response_str);
     
     // Parse the JSON response
     let parsed: serde_json::Value = serde_json::from_str(&response_str)
-        .map_err(|e| format!("Failed to parse response JSON: {}", e))?;
+        .map_err(|e| format!("Failed to parse response JSON: {} | Raw: {}", e, response_str))?;
+
+    if let Some(error) = parsed.get("error") {
+        return Err(format!("Groq API Error: {}", error));
+    }
 
     let content = parsed["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or("")
         .to_string();
 
-    println!("DEBUG AGENT GROQ RESPONSE: {}", content);
+    println!("DEBUG AGENT EXTRACTED CONTENT: |{}|", content);
 
     Ok(content)
 }

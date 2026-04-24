@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::env;
 
 #[derive(Debug, Deserialize)]
 struct ClistContest {
@@ -27,10 +26,9 @@ pub struct Contest {
 }
 
 #[tauri::command]
-pub async fn fetch_contests() -> Result<Vec<Contest>, String> {
-    let _ = dotenvy::from_path("../.env");
-    let user = env::var("CLIST_USERNAME").map_err(|_| "Missing CLIST_USERNAME".to_string())?;
-    let key = env::var("CLIST_API_KEY").map_err(|_| "Missing CLIST_API_KEY".to_string())?;
+pub async fn fetch_contests(clist_username: String, clist_api_key: String) -> Result<Vec<Contest>, String> {
+    let user = clist_username;
+    let key = clist_api_key;
 
     let url = format!(
         "https://clist.by/api/v4/contest/?upcoming=true&order_by=start&limit=50&format=json&resource__in=codeforces.com,atcoder.jp,leetcode.com,codechef.com&username={}&api_key={}",
@@ -67,9 +65,9 @@ pub async fn generate_training_plan(
     _contest_date: String,
     days_until: i64,
     user_level: String,
+    groq_api_key: String,
 ) -> Result<String, String> {
-    let _ = dotenvy::from_path("../.env");
-    let key = env::var("GROQ_API_KEY").map_err(|_| "Missing GROQ_API_KEY".to_string())?;
+    let key = groq_api_key;
 
     let prompt = format!(
         "You are a competitive programming coach. Respond in Traditional Chinese (繁體中文).\n\nA student (level: {}) wants to prepare for \"{}\" on {} in {} days.\n\nCreate a 5-day practice plan using ONLY problems from the CSES Problem Set (cses.fi). These are real CSES problems you must use:\n\nSorting: Distinct Numbers, Apartments, Ferris Wheel, Concert Tickets, Restaurant Customers, Movie Festival, Sum of Two Values, Collecting Numbers, Playlist\nGreedy: Stick Lengths, Missing Coin Sum, Tasks and Deadlines, Movie Festival II\nDP: Dice Combinations, Minimizing Coins, Coin Combinations I, Coin Combinations II, Removing Digits, Grid Paths, Book Shop, Array Description, Counting Towers, Edit Distance\nGraph: Counting Rooms, Labyrinth, Building Roads, Message Route, Building Teams, Round Trip, Shortest Routes I, Shortest Routes II, Flight Discount\nMath: Exponentiation, Counting Divisors, Counting Divisors, Common Divisors, Sum of Divisors, Binomial Coefficients\n\nPick problems appropriate for the student's level. For each day, suggest 2-3 problems.\n\nOutput format (STRICTLY one problem per line, NO other text):\nDAY 1|problem_name|task_id|topic_tag|difficulty\nDAY 1|problem_name|task_id|topic_tag|difficulty\nDAY 2|problem_name|task_id|topic_tag|difficulty\n\nWhere task_id is the CSES problem ID number (e.g. Distinct Numbers = 1621, Dice Combinations = 1633, Counting Rooms = 1748). You MUST provide the correct CSES task ID for each problem.",

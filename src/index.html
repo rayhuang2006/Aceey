@@ -163,6 +163,90 @@
         </div>
     </div>
 
+    <!-- VS Code Style Settings View (Hidden by default) -->
+    <div id="settings-view" style="display: none;">
+        <div class="settings-sidebar">
+            <div class="settings-sidebar-header">Settings</div>
+            <ul class="settings-nav">
+                <li class="active" data-section="settings-credentials">Credentials</li>
+                <li data-section="settings-agent-behavior">Agent Behavior</li>
+            </ul>
+        </div>
+        <div class="settings-content-wrapper">
+            <div class="settings-topbar">
+                <div class="settings-breadcrumbs">Settings &gt; <span id="settings-current-section-text">Credentials</span></div>
+                <button id="settings-close-btn">&times;</button>
+            </div>
+            <div class="settings-main-scroll">
+                
+                <!-- Credentials Section -->
+                <div id="settings-credentials" class="settings-section">
+                    <h3 class="settings-section-title">Credentials</h3>
+                    
+                    <div class="setting-item">
+                        <label>Clist Username</label>
+                        <div class="setting-desc">Used for fetching upcoming contests from the clist.by API.</div>
+                        <input type="text" id="setting-clist-username" placeholder="e.g. tourist" />
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Clist API Key</label>
+                        <div class="setting-desc">Your secret API key from clist.by for contest data.</div>
+                        <input type="password" id="setting-clist-api-key" placeholder="••••••••••••••••••••••••" />
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Groq API Key</label>
+                        <div class="setting-desc">Required for the AI Debug Agent and Training Plan generation.</div>
+                        <input type="password" id="setting-groq-api-key" placeholder="gsk_..." />
+                    </div>
+                </div>
+
+                <!-- Agent Behavior Section -->
+                <div id="settings-agent-behavior" class="settings-section" style="display: none;">
+                    <h3 class="settings-section-title">Agent Behavior</h3>
+                    
+                    <div class="setting-item">
+                        <label>Auto-trigger Debug Agent on Compile Error (CE)</label>
+                        <div class="setting-desc">Automatically analyze errors when code fails to compile.</div>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="setting-trigger-ce" checked />
+                            <span>Enable for CE</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Auto-trigger Debug Agent on Runtime Error (RE)</label>
+                        <div class="setting-desc">Automatically analyze crashes or out-of-bounds access.</div>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="setting-trigger-re" checked />
+                            <span>Enable for RE</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Auto-trigger Debug Agent on Wrong Answer (WA)</label>
+                        <div class="setting-desc">Automatically ask AI to find logic flaws when answers mismatch.</div>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="setting-trigger-wa" />
+                            <span>Enable for WA</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Auto-trigger Debug Agent on Time Limit Exceeded (TLE)</label>
+                        <div class="setting-desc">Ask AI for optimization suggestions when code is too slow.</div>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="setting-trigger-tle" />
+                            <span>Enable for TLE</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Required script for Monaco -->
     <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>

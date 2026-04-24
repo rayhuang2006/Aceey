@@ -1,3 +1,5 @@
+// Core logic starts here
+
 const DEFAULT_CPP = `#include <bits/stdc++.h>
 using namespace std;
 
@@ -15,6 +17,98 @@ let testCases = [
     { id: 1, input: "1 2\n", expected_output: "3\n", actual_output: "", verdict: "-", time_ms: 0, error: null }
 ];
 let activeTcId = 1;
+
+// --- Settings Store Logic ---
+let appSettings = {
+    clistUsername: "",
+    clistApiKey: "",
+    groqApiKey: "",
+    autoTriggerCE: true,
+    autoTriggerRE: true,
+    autoTriggerWA: true,
+    autoTriggerTLE: true
+};
+let settingsStore = null;
+
+async function initSettingsStore() {
+    try {
+        const storeModule = window.__TAURI__?.store || window.__TAURI_PLUGIN_STORE__;
+        if (storeModule) {
+            settingsStore = await (storeModule.load ? storeModule.load('settings.json') : new storeModule.Store('settings.json'));
+        } else {
+            console.warn("Tauri Store plugin not found in window.__TAURI__");
+            return;
+        }
+        
+        // Load defaults or stored values
+        appSettings.clistUsername = await settingsStore.get('clistUsername') ?? "";
+        appSettings.clistApiKey = await settingsStore.get('clistApiKey') ?? "";
+        appSettings.groqApiKey = await settingsStore.get('groqApiKey') ?? "";
+        appSettings.autoTriggerCE = await settingsStore.get('autoTriggerCE') ?? true;
+        appSettings.autoTriggerRE = await settingsStore.get('autoTriggerRE') ?? true;
+        appSettings.autoTriggerWA = await settingsStore.get('autoTriggerWA') ?? true;
+        appSettings.autoTriggerTLE = await settingsStore.get('autoTriggerTLE') ?? true;
+
+        // Apply to UI
+        document.getElementById('setting-clist-username').value = appSettings.clistUsername;
+        document.getElementById('setting-clist-api-key').value = appSettings.clistApiKey;
+        document.getElementById('setting-groq-api-key').value = appSettings.groqApiKey;
+        document.getElementById('setting-trigger-ce').checked = appSettings.autoTriggerCE;
+        document.getElementById('setting-trigger-re').checked = appSettings.autoTriggerRE;
+        document.getElementById('setting-trigger-wa').checked = appSettings.autoTriggerWA;
+        document.getElementById('setting-trigger-tle').checked = appSettings.autoTriggerTLE;
+    } catch (e) {
+        console.warn("Could not load settings store:", e);
+    }
+}
+
+// Ensure it runs
+initSettingsStore();
+
+// Setup Settings UI Handlers
+document.getElementById('settings-btn').addEventListener('click', () => {
+    document.getElementById('settings-view').style.display = 'flex';
+});
+
+document.getElementById('settings-close-btn').addEventListener('click', () => {
+    document.getElementById('settings-view').style.display = 'none';
+});
+
+// Settings Navigation Tabs
+document.querySelectorAll('.settings-nav li').forEach(item => {
+    item.addEventListener('click', (e) => {
+        document.querySelectorAll('.settings-nav li').forEach(li => li.classList.remove('active'));
+        item.classList.add('active');
+        
+        document.querySelectorAll('.settings-section').forEach(sec => sec.style.display = 'none');
+        const sectionId = item.getAttribute('data-section');
+        document.getElementById(sectionId).style.display = 'block';
+        document.getElementById('settings-current-section-text').textContent = item.textContent;
+    });
+});
+
+// Auto-Save Bindings
+async function updateStoreValue(key, value) {
+    appSettings[key] = value;
+    if (settingsStore) {
+        await settingsStore.set(key, value);
+        await settingsStore.save();
+    }
+}
+
+['setting-clist-username', 'setting-clist-api-key', 'setting-groq-api-key'].forEach(id => {
+    const el = document.getElementById(id);
+    const key = id.replace('setting-', '').replace(/-([a-z])/g, g => g[1].toUpperCase());
+    el.addEventListener('change', (e) => updateStoreValue(key, e.target.value));
+});
+
+['setting-trigger-ce', 'setting-trigger-re', 'setting-trigger-wa', 'setting-trigger-tle'].forEach(id => {
+    const el = document.getElementById(id);
+    const type = id.split('-').pop().toUpperCase(); // "ce" -> "CE"
+    const key = 'autoTrigger' + type;
+    el.addEventListener('change', (e) => updateStoreValue(key, e.target.checked));
+});
+// ----------------------------
 
 // Initialize Monaco when loaded
 let DebugZoneWidget;
@@ -241,13 +335,41 @@ async function runCode() {
         renderTabs();
 
         // Debug Agent Hook
-        const failedCase = testCases.find(tc => tc.verdict !== 'AC');
+        const failedCase = testCases.find(tc =>tc.verdict === 'CE' || tc.verdict === 'RE' || tc.verdict === 'WA' || tc.verdict === 'TLE');
         if (failedCase) {
+            // Check settings (Just-in-time fresh read from store)
+            const type = failedCase.verdict; // 'CE', 'RE', etc.
+            const triggerKey = 'autoTrigger' + type;
+            
+            let shouldTrigger = true;
+            if (settingsStore) {
+                shouldTrigger = await settingsStore.get(triggerKey) ?? true;
+            } else {
+                // Fallback to local memory if store not ready
+                shouldTrigger = appSettings[triggerKey];
+            }
+
+            if (!shouldTrigger) {
+                return; // Disabled in settings
+            }
+
             tcVerdict.textContent += " (AI Analyzing...)";
             const problemText = document.getElementById('problem-text').innerText || '';
             const sourceCodeToAnalyze = editor.getValue();
             
             try {
+                // Just-in-time fresh read of API keys
+                let freshApiKey = appSettings.groqApiKey;
+                if (settingsStore) {
+                    freshApiKey = await settingsStore.get('groqApiKey') || freshApiKey;
+                }
+
+                if (!freshApiKey) {
+                    console.error("Groq API Key is empty! Please set it in Settings.");
+                    tcVerdict.textContent = tcVerdict.textContent.replace(" (AI Analyzing...)", " (API Key Missing)");
+                    return;
+                }
+
                 const analysis = await invoke('analyze_error', {
                     sourceCode: sourceCodeToAnalyze,
                     problemDescription: problemText,
@@ -256,6 +378,7 @@ async function runCode() {
                     testInput: failedCase.input || '',
                     expectedOutput: failedCase.expected_output || '',
                     actualOutput: failedCase.actual_output || '',
+                    groqApiKey: freshApiKey
                 });
                 console.log("DEBUG AGENT RAW RESPONSE:", analysis);
                 console.log("DEBUG AGENT PARSED:", parseDebugResponse(analysis));
@@ -650,7 +773,10 @@ async function loadContests() {
     if (calendarGridBody) calendarGridBody.innerHTML = '';
 
     try {
-        const contests = await invoke('fetch_contests');
+        const contests = await invoke('fetch_contests', {
+            clistUsername: appSettings.clistUsername || "",
+            clistApiKey: appSettings.clistApiKey || ""
+        });
         console.log("calendar response received:", contests);
 
         // We removed the dummy test contest
@@ -974,7 +1100,8 @@ async function generateTrainingPlan() {
             contestPlatform: contest.platform,
             contestDate: contest.start_time,
             daysUntil: daysUntil,
-            userLevel: lastRatingSelected
+            userLevel: lastRatingSelected,
+            groqApiKey: appSettings.groqApiKey || ""
         });
         
         parseReviewPlan(response, contest, daysUntil);

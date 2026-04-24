@@ -19,6 +19,7 @@ async fn compile_and_run(
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             compile_and_run, 
             calendar::fetch_contests,
