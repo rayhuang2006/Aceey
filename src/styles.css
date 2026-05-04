@@ -1159,3 +1159,37 @@ button#run-btn .icon {
     font-size: 13px;
     color: #cccccc;
 }
+
+/* Agent Memory Section Styles */
+.agent-memory-tags {
+    margin: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 24px;
+}
+
+.agent-memory-tags span {
+    background-color: #2a2d2e;
+    color: #cccccc;
+    border: 1px solid #3c3c3c;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.vs-secondary-btn {
+    background-color: #3a3d41;
+    color: #ffffff;
+    border: none;
+    border-radius: 2px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.vs-secondary-btn:hover {
+    background-color: #4d5155;
+}

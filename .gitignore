@@ -5,3 +5,4 @@ dist/
 .env
 *.swp
 *.swo
+.aceey_memory.json

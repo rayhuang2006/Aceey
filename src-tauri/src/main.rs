@@ -16,6 +16,18 @@ async fn compile_and_run(
     compiler::compile_and_run(&source_code, test_cases, limit).await
 }
 
+#[tauri::command]
+fn get_env_vars() -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    let _ = dotenvy::dotenv();
+    for (key, value) in std::env::vars() {
+        if key.starts_with("VITE_") || key.ends_with("_API_KEY") || key.ends_with("_USERNAME") {
+            map.insert(key, value);
+        }
+    }
+    map
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -24,7 +36,10 @@ fn main() {
             compile_and_run, 
             calendar::fetch_contests,
             calendar::generate_training_plan,
-            debug_agent::analyze_error
+            debug_agent::analyze_error,
+            debug_agent::get_agent_memory,
+            debug_agent::clear_agent_memory,
+            get_env_vars
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

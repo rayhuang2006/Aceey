@@ -32,6 +32,7 @@ let settingsStore = null;
 
 async function initSettingsStore() {
     try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
         const storeModule = window.__TAURI__?.store || window.__TAURI_PLUGIN_STORE__;
         if (storeModule) {
             settingsStore = await (storeModule.load ? storeModule.load('settings.json') : new storeModule.Store('settings.json'));
@@ -49,6 +50,36 @@ async function initSettingsStore() {
         appSettings.autoTriggerWA = await settingsStore.get('autoTriggerWA') ?? true;
         appSettings.autoTriggerTLE = await settingsStore.get('autoTriggerTLE') ?? true;
 
+        // --- Developer QoL: .env Fallback ---
+        if (!appSettings.clistUsername || !appSettings.clistApiKey || !appSettings.groqApiKey) {
+            try {
+                const envVars = await invoke('get_env_vars');
+                let foundEnv = false;
+                if (envVars.CLIST_USERNAME && !appSettings.clistUsername) {
+                    appSettings.clistUsername = envVars.CLIST_USERNAME;
+                    await settingsStore.set('clistUsername', appSettings.clistUsername);
+                    foundEnv = true;
+                }
+                if (envVars.CLIST_API_KEY && !appSettings.clistApiKey) {
+                    appSettings.clistApiKey = envVars.CLIST_API_KEY;
+                    await settingsStore.set('clistApiKey', appSettings.clistApiKey);
+                    foundEnv = true;
+                }
+                if (envVars.GROQ_API_KEY && !appSettings.groqApiKey) {
+                    appSettings.groqApiKey = envVars.GROQ_API_KEY;
+                    await settingsStore.set('groqApiKey', appSettings.groqApiKey);
+                    foundEnv = true;
+                }
+                if (foundEnv) {
+                    await settingsStore.save();
+                    console.log("⚙️ 偵測到 .env，已自動填入並儲存設定");
+                }
+            } catch (envError) {
+                console.warn("Failed to load .env fallback:", envError);
+            }
+        }
+        // ------------------------------------
+
         // Apply to UI
         document.getElementById('setting-clist-username').value = appSettings.clistUsername;
         document.getElementById('setting-clist-api-key').value = appSettings.clistApiKey;
@@ -65,9 +96,40 @@ async function initSettingsStore() {
 // Ensure it runs
 initSettingsStore();
 
+async function renderAgentMemory() {
+    try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+        if (!invoke) return;
+        const memory = await invoke('get_agent_memory');
+        const container = document.getElementById('agent-memory-container');
+        if (!memory || memory.length === 0) {
+            container.innerHTML = '<span style="color: #8b949e; font-size: 13px;">No memory records found.</span>';
+        } else {
+            container.innerHTML = memory.map(tag => 
+                `<span>${tag}</span>`
+            ).join('');
+        }
+    } catch (e) {
+        console.error("Failed to load agent memory:", e);
+    }
+}
+
+document.getElementById('clear-memory-btn').addEventListener('click', async () => {
+    try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+        await invoke('clear_agent_memory');
+        console.log("Agent memory cleared.");
+        await renderAgentMemory();
+        alert("Agent memory has been cleared!");
+    } catch (e) {
+        console.error("Failed to clear memory:", e);
+    }
+});
+
 // Setup Settings UI Handlers
 document.getElementById('settings-btn').addEventListener('click', () => {
     document.getElementById('settings-view').style.display = 'flex';
+    renderAgentMemory();
 });
 
 document.getElementById('settings-close-btn').addEventListener('click', () => {
@@ -334,60 +396,10 @@ async function runCode() {
         loadCurrentTab();
         renderTabs();
 
-        // Debug Agent Hook
+        // Debug Agent Hook (Refactored Pipeline)
         const failedCase = testCases.find(tc =>tc.verdict === 'CE' || tc.verdict === 'RE' || tc.verdict === 'WA' || tc.verdict === 'TLE');
         if (failedCase) {
-            // Check settings (Just-in-time fresh read from store)
-            const type = failedCase.verdict; // 'CE', 'RE', etc.
-            const triggerKey = 'autoTrigger' + type;
-            
-            let shouldTrigger = true;
-            if (settingsStore) {
-                shouldTrigger = await settingsStore.get(triggerKey) ?? true;
-            } else {
-                // Fallback to local memory if store not ready
-                shouldTrigger = appSettings[triggerKey];
-            }
-
-            if (!shouldTrigger) {
-                return; // Disabled in settings
-            }
-
-            tcVerdict.textContent += " (AI Analyzing...)";
-            const problemText = document.getElementById('problem-text').innerText || '';
-            const sourceCodeToAnalyze = editor.getValue();
-            
-            try {
-                // Just-in-time fresh read of API keys
-                let freshApiKey = appSettings.groqApiKey;
-                if (settingsStore) {
-                    freshApiKey = await settingsStore.get('groqApiKey') || freshApiKey;
-                }
-
-                if (!freshApiKey) {
-                    console.error("Groq API Key is empty! Please set it in Settings.");
-                    tcVerdict.textContent = tcVerdict.textContent.replace(" (AI Analyzing...)", " (API Key Missing)");
-                    return;
-                }
-
-                const analysis = await invoke('analyze_error', {
-                    sourceCode: sourceCodeToAnalyze,
-                    problemDescription: problemText,
-                    errorType: failedCase.verdict,
-                    compilerOutput: failedCase.error || '',
-                    testInput: failedCase.input || '',
-                    expectedOutput: failedCase.expected_output || '',
-                    actualOutput: failedCase.actual_output || '',
-                    groqApiKey: freshApiKey
-                });
-                console.log("DEBUG AGENT RAW RESPONSE:", analysis);
-                console.log("DEBUG AGENT PARSED:", parseDebugResponse(analysis));
-                applyDebugDecorations(analysis);
-            } catch(e) {
-                console.error("Debug Agent failed:", e);
-                // Clear the analyzing text by reloading the tab
-                loadCurrentTab();
-            }
+            await agentWorkflowPipeline(failedCase.verdict, failedCase);
         }
         
     } catch (e) {
@@ -398,6 +410,85 @@ async function runCode() {
 }
 
 document.getElementById('run-btn').addEventListener('click', runCode);
+
+// --- Agent Workflow Pipeline ---
+async function agentWorkflowPipeline(verdict, failedCase) {
+    if (!await checkTriggerPolicy(verdict)) return;
+    
+    const context = await prepareContext(failedCase);
+    if (!context) return;
+    
+    tcVerdict.textContent += " (AI Analyzing...)";
+    
+    const agentResponse = await callAgentBrain(context);
+    if (agentResponse) {
+        await executeAction(agentResponse);
+    } else {
+        loadCurrentTab(); // recover from error
+    }
+}
+
+async function checkTriggerPolicy(verdict) {
+    const triggerKey = 'autoTrigger' + verdict;
+    let shouldTrigger = true;
+    if (settingsStore) {
+        shouldTrigger = await settingsStore.get(triggerKey) ?? true;
+    } else {
+        shouldTrigger = appSettings[triggerKey];
+    }
+    return shouldTrigger;
+}
+
+async function prepareContext(failedCase) {
+    let freshApiKey = appSettings.groqApiKey;
+    if (settingsStore) {
+        freshApiKey = await settingsStore.get('groqApiKey') || freshApiKey;
+    }
+    if (!freshApiKey) {
+        console.error("Groq API Key is empty! Please set it in Settings.");
+        tcVerdict.textContent = tcVerdict.textContent.replace(" (AI Analyzing...)", " (API Key Missing)");
+        return null;
+    }
+    
+    return {
+        sourceCode: editor.getValue(),
+        problemDescription: document.getElementById('problem-text').innerText || '',
+        errorType: failedCase.verdict,
+        compilerOutput: failedCase.error || '',
+        testInput: failedCase.input || '',
+        expectedOutput: failedCase.expected_output || '',
+        actualOutput: failedCase.actual_output || '',
+        groqApiKey: freshApiKey
+    };
+}
+
+async function callAgentBrain(context) {
+    try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+        return await invoke('analyze_error', {
+            sourceCode: context.sourceCode,
+            problemDescription: context.problemDescription,
+            errorType: context.errorType,
+            compilerOutput: context.compilerOutput,
+            testInput: context.testInput,
+            expectedOutput: context.expectedOutput,
+            actualOutput: context.actualOutput,
+            groqApiKey: context.groqApiKey
+        });
+    } catch(e) {
+        console.error("Debug Agent failed:", e);
+        return null;
+    }
+}
+
+async function executeAction(rawResponse) {
+    console.log("DEBUG AGENT RAW RESPONSE:", rawResponse);
+    const allIssues = parseDebugResponse(rawResponse);
+    console.log("DEBUG AGENT PARSED:", allIssues);
+    
+    applyDebugDecorationsWithParsed(allIssues);
+}
+// -------------------------------
 
 // --- Debug Agent Functions ---
 let currentDecorations = [];
@@ -439,7 +530,8 @@ function parseDebugResponse(raw) {
             return {
                 lineNumber: parseInt(parts[1]),
                 description: parts[2] || '',
-                suggestion: parts[3] || ''
+                suggestion: parts[3] || '',
+                errorTag: parts[4] || ''
             };
         })
         .filter(item => {
@@ -463,8 +555,7 @@ function parseDebugResponse(raw) {
         });
 }
 
-function applyDebugDecorations(rawResponse) {
-    const allIssues = parseDebugResponse(rawResponse);
+function applyDebugDecorationsWithParsed(allIssues) {
     if (allIssues.length === 0) return;
     
     debugIssueQueue = allIssues.filter(i => i.lineNumber > 0);
