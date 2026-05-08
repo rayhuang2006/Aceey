@@ -140,6 +140,9 @@ function initQuotaMonitor() {
             if (quotaLimitDisplay) quotaLimitDisplay.textContent = val;
         });
     }
+
+    // Initial load
+    updateTokenMonitorUI();
 }
 
 // Ensure it runs regardless of script load timing
@@ -503,6 +506,44 @@ async function agentWorkflowPipeline(verdict, failedCase) {
         await executeAction(agentResponse);
     } else {
         loadCurrentTab(); // recover from error
+    }
+    
+    // Update Token Monitor UI after agent execution
+    await updateTokenMonitorUI();
+}
+
+// --- Update Token Monitor UI ---
+async function updateTokenMonitorUI() {
+    try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+        if (!invoke) return;
+
+        const usages = await invoke('get_token_usage');
+        if (!usages) return;
+
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
+
+        usages.forEach(usage => {
+            totalPromptTokens += usage.prompt_tokens || 0;
+            totalCompletionTokens += usage.completion_tokens || 0;
+        });
+
+        const totalTokens = totalPromptTokens + totalCompletionTokens;
+        
+        // Input (Prompt) Cost: $0.59 / 1,000,000 tokens
+        // Output (Completion) Cost: $0.79 / 1,000,000 tokens
+        const estimatedCost = (totalPromptTokens * 0.59 / 1000000) + (totalCompletionTokens * 0.79 / 1000000);
+        const formattedCost = estimatedCost.toFixed(4);
+
+        const usedSpan = document.getElementById('quota-used');
+        const costDiv = document.querySelector('.quota-cost');
+
+        if (usedSpan) usedSpan.textContent = totalTokens;
+        if (costDiv) costDiv.textContent = `Est. Cost: $${formattedCost}`;
+
+    } catch (e) {
+        console.error("Failed to update token monitor UI:", e);
     }
 }
 
