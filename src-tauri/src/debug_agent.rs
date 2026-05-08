@@ -1,5 +1,16 @@
 use tauri::Manager;
 use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TokenUsage {
+    pub timestamp: u64,
+    pub agent_type: String,
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
+}
 
 fn get_memory_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -7,6 +18,49 @@ fn get_memory_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         std::fs::create_dir_all(&app_data_dir).map_err(|e| format!("Failed to create AppData dir: {}", e))?;
     }
     Ok(app_data_dir.join(".aceey_memory.json"))
+}
+
+fn get_usage_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    if !app_data_dir.exists() {
+        std::fs::create_dir_all(&app_data_dir).map_err(|e| format!("Failed to create AppData dir: {}", e))?;
+    }
+    Ok(app_data_dir.join(".aceey_usage.json"))
+}
+
+fn log_token_usage(app: &tauri::AppHandle, usage: TokenUsage) -> Result<(), String> {
+    let usage_file = get_usage_file_path(app)?;
+    let mut history: Vec<TokenUsage> = vec![];
+    
+    if usage_file.exists() {
+        if let Ok(contents) = std::fs::read_to_string(&usage_file) {
+            if let Ok(parsed) = serde_json::from_str::<Vec<TokenUsage>>(&contents) {
+                history = parsed;
+            }
+        }
+    }
+    
+    history.push(usage);
+    
+    if let Ok(json) = serde_json::to_string(&history) {
+        if std::fs::write(&usage_file, json).is_ok() {
+            return Ok(());
+        }
+    }
+    Err("無法寫入 usage 檔案".to_string())
+}
+
+#[tauri::command]
+pub async fn get_token_usage(app: tauri::AppHandle) -> Result<Vec<TokenUsage>, String> {
+    let usage_file = get_usage_file_path(&app)?;
+    if usage_file.exists() {
+        if let Ok(contents) = std::fs::read_to_string(&usage_file) {
+            if let Ok(parsed) = serde_json::from_str::<Vec<TokenUsage>>(&contents) {
+                return Ok(parsed);
+            }
+        }
+    }
+    Ok(vec![])
 }
 
 #[tauri::command]
@@ -133,6 +187,26 @@ If the error is a general logic problem not tied to one line, use 0 as line_numb
 
     if let Some(error) = parsed.get("error") {
         return Err(format!("Groq API Error: {}", error));
+    }
+
+    if let Some(usage) = parsed.get("usage") {
+        let prompt_tokens = usage["prompt_tokens"].as_u64().unwrap_or(0) as u32;
+        let completion_tokens = usage["completion_tokens"].as_u64().unwrap_or(0) as u32;
+        let total_tokens = usage["total_tokens"].as_u64().unwrap_or(0) as u32;
+        
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        
+        let token_usage = TokenUsage {
+            timestamp,
+            agent_type: "debug".to_string(),
+            prompt_tokens,
+            completion_tokens,
+            total_tokens,
+        };
+        
+        if log_token_usage(&app, token_usage).is_ok() {
+            println!("💰 [FinOps] Token 記帳成功：使用了 {} tokens", total_tokens);
+        }
     }
 
     let content = parsed["choices"][0]["message"]["content"]

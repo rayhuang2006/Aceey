@@ -54,6 +54,7 @@ fn main() {
             debug_agent::analyze_error,
             debug_agent::get_agent_memory,
             debug_agent::clear_agent_memory,
+            debug_agent::get_token_usage,
             get_env_vars
         ])
         .run(tauri::generate_context!())
