@@ -1254,52 +1254,52 @@ button#run-btn .icon {
   padding-bottom: 6px;
 }
 
-.quota-panel-body label {
-  display: block;
-  font-size: 11px;
-  margin-bottom: 6px;
-  color: #aaa;
-}
-
-.quota-slider-row {
+.quota-model-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-#quota-slider {
-  -webkit-appearance: none;
+.quota-model-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quota-model-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.quota-model-stats {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #aaa;
+}
+
+.quota-progress-bar-bg {
   width: 100%;
   height: 4px;
-  background: #3c3c3c;
+  background-color: #333333;
   border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-  flex-grow: 1;
+  overflow: hidden;
 }
 
-#quota-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%; 
-  background: #007acc;
-  cursor: pointer;
-  border: 2px solid #252526;
+.quota-progress-bar-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  width: 0%;
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-#quota-slider-value {
-  font-variant-numeric: tabular-nums;
-  min-width: 45px;
-  text-align: right;
-  font-size: 12px;
-}
-
-.quota-cost {
+.quota-cost-row {
   font-size: 11px;
-  color: #4CAF50;
+  color: #888;
   text-align: right;
-  margin-top: 4px;
+}
+
+#quota-cost-text {
+  color: #4CAF50;
 }

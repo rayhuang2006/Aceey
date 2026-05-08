@@ -26,7 +26,8 @@ let appSettings = {
     autoTriggerCE: true,
     autoTriggerRE: true,
     autoTriggerWA: true,
-    autoTriggerTLE: true
+    autoTriggerTLE: true,
+    tokenBudget: 50000
 };
 let settingsStore = null;
 
@@ -49,6 +50,7 @@ async function initApp() {
         appSettings.autoTriggerRE = await settingsStore.get('autoTriggerRE') ?? true;
         appSettings.autoTriggerWA = await settingsStore.get('autoTriggerWA') ?? true;
         appSettings.autoTriggerTLE = await settingsStore.get('autoTriggerTLE') ?? true;
+        appSettings.tokenBudget = await settingsStore.get('tokenBudget') ?? 50000;
         console.log("🔍 [狀態追蹤] 啟動時從 Store 讀到的 Groq API Key:", appSettings.groqApiKey);
 
         // --- Developer QoL: .env Fallback ---
@@ -89,6 +91,9 @@ async function initApp() {
         document.getElementById('setting-trigger-re').checked = appSettings.autoTriggerRE;
         document.getElementById('setting-trigger-wa').checked = appSettings.autoTriggerWA;
         document.getElementById('setting-trigger-tle').checked = appSettings.autoTriggerTLE;
+        
+        const tokenBudgetEl = document.getElementById('setting-token-budget');
+        if (tokenBudgetEl) tokenBudgetEl.value = appSettings.tokenBudget;
     } catch (e) {
         console.error("❌ 權限不足，Store 加載失敗。", e);
     }
@@ -124,23 +129,19 @@ async function initializeBindings() {
         }
     });
 
+    const tokenBudgetEl = document.getElementById('setting-token-budget');
+    if (tokenBudgetEl) {
+        tokenBudgetEl.addEventListener('change', (e) => {
+            updateStoreValue('tokenBudget', parseInt(e.target.value) || 50000);
+            updateTokenMonitorUI();
+        });
+    }
+
     initQuotaMonitor();
 }
 
 // Quota Monitor Hover Panel Logic
 function initQuotaMonitor() {
-    const slider = document.getElementById('quota-slider');
-    const sliderValueDisplay = document.getElementById('quota-slider-value');
-    const quotaLimitDisplay = document.getElementById('quota-limit');
-
-    if (slider) {
-        slider.addEventListener('input', (e) => {
-            const val = e.target.value;
-            if (sliderValueDisplay) sliderValueDisplay.textContent = val;
-            if (quotaLimitDisplay) quotaLimitDisplay.textContent = val;
-        });
-    }
-
     // Initial load
     updateTokenMonitorUI();
 }
@@ -536,11 +537,32 @@ async function updateTokenMonitorUI() {
         const estimatedCost = (totalPromptTokens * 0.59 / 1000000) + (totalCompletionTokens * 0.79 / 1000000);
         const formattedCost = estimatedCost.toFixed(4);
 
+        const budget = appSettings.tokenBudget || 50000;
+        const percentage = Math.min((totalTokens / budget) * 100, 100);
+
+        const fillEl = document.getElementById('quota-progress-bar-fill');
+        if (fillEl) {
+            fillEl.style.width = percentage + '%';
+            if (percentage >= 100) fillEl.style.backgroundColor = '#F44336'; // Red
+            else if (percentage > 80) fillEl.style.backgroundColor = '#FF9800'; // Orange
+            else fillEl.style.backgroundColor = '#4CAF50'; // Green
+        }
+
+        const formatK = (num) => num >= 1000 ? (num / 1000).toFixed(0) + 'k' : num.toString();
+        
+        const limitText = document.getElementById('quota-limit-text');
+        if (limitText) limitText.textContent = formatK(budget);
+        
+        const usedText = document.getElementById('quota-used-text');
+        if (usedText) usedText.textContent = formatK(totalTokens);
+
         const usedSpan = document.getElementById('quota-used');
-        const costDiv = document.querySelector('.quota-cost');
+        const limitSpan = document.getElementById('quota-limit');
+        const costDiv = document.getElementById('quota-cost-text');
 
         if (usedSpan) usedSpan.textContent = totalTokens;
-        if (costDiv) costDiv.textContent = `Est. Cost: $${formattedCost}`;
+        if (limitSpan) limitSpan.textContent = budget;
+        if (costDiv) costDiv.textContent = `$${formattedCost}`;
 
     } catch (e) {
         console.error("Failed to update token monitor UI:", e);
