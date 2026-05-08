@@ -129,12 +129,23 @@ async function initializeBindings() {
         }
     });
 
-    const tokenBudgetEl = document.getElementById('setting-token-budget');
-    if (tokenBudgetEl) {
-        tokenBudgetEl.addEventListener('change', (e) => {
-            updateStoreValue('tokenBudget', parseInt(e.target.value) || 50000);
+    const tokenBudgetInput = document.getElementById('setting-token-budget');
+    const tokenBudgetSlider = document.getElementById('setting-token-slider');
+
+    if (tokenBudgetInput && tokenBudgetSlider) {
+        tokenBudgetInput.value = appSettings.tokenBudget || 50000;
+        tokenBudgetSlider.value = appSettings.tokenBudget || 50000;
+
+        const updateBudget = (val) => {
+            const parsed = parseInt(val) || 50000;
+            tokenBudgetInput.value = parsed;
+            tokenBudgetSlider.value = parsed;
+            updateStoreValue('tokenBudget', parsed);
             updateTokenMonitorUI();
-        });
+        };
+
+        tokenBudgetInput.addEventListener('change', (e) => updateBudget(e.target.value));
+        tokenBudgetSlider.addEventListener('input', (e) => updateBudget(e.target.value));
     }
 
     initQuotaMonitor();

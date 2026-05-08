@@ -1156,8 +1156,50 @@ button#run-btn .icon {
 }
 
 .checkbox-wrapper span {
-    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.vscode-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+#setting-token-slider {
+    -webkit-appearance: none;
+    width: 200px;
+    height: 4px;
+    background: #3c3c3c;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+#setting-token-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #007acc;
+    cursor: pointer;
+    border: 2px solid #252526;
+}
+
+.vscode-input {
+    background-color: #3c3c3c;
     color: #cccccc;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    border-radius: 2px;
+    outline: none;
+    font-family: Consolas, monospace;
+    width: 100px;
+}
+
+.vscode-input:focus {
+    border-color: #007acc;
 }
 
 /* Agent Memory Section Styles */
