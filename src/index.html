@@ -256,6 +256,30 @@
         </div>
     </div>
 
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <div class="status-bar-left">
+            <div class="status-item">Aceey IDE</div>
+        </div>
+        <div class="status-bar-right">
+            <div id="quota-monitor-trigger" class="status-item">
+                [Groq] <span id="quota-used">0</span> / <span id="quota-limit">50000</span> Tokens
+                
+                <div id="quota-hover-panel">
+                    <div class="quota-panel-header">API Quota Monitor</div>
+                    <div class="quota-panel-body">
+                        <label>Daily Token Budget:</label>
+                        <div class="quota-slider-row">
+                            <input type="range" id="quota-slider" min="1000" max="100000" step="1000" value="50000">
+                            <span id="quota-slider-value">50000</span>
+                        </div>
+                        <div class="quota-cost">Est. Cost: $0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Required script for Monaco -->
     <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>

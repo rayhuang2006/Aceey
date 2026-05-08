@@ -123,6 +123,23 @@ async function initializeBindings() {
             console.log(`✅ 成功綁定 Checkbox 存檔事件 (${id})`);
         }
     });
+
+    initQuotaMonitor();
+}
+
+// Quota Monitor Hover Panel Logic
+function initQuotaMonitor() {
+    const slider = document.getElementById('quota-slider');
+    const sliderValueDisplay = document.getElementById('quota-slider-value');
+    const quotaLimitDisplay = document.getElementById('quota-limit');
+
+    if (slider) {
+        slider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (sliderValueDisplay) sliderValueDisplay.textContent = val;
+            if (quotaLimitDisplay) quotaLimitDisplay.textContent = val;
+        });
+    }
 }
 
 // Ensure it runs regardless of script load timing
