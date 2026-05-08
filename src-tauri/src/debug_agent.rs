@@ -1,8 +1,19 @@
+use tauri::Manager;
+use std::path::PathBuf;
+
+fn get_memory_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    if !app_data_dir.exists() {
+        std::fs::create_dir_all(&app_data_dir).map_err(|e| format!("Failed to create AppData dir: {}", e))?;
+    }
+    Ok(app_data_dir.join(".aceey_memory.json"))
+}
+
 #[tauri::command]
-pub async fn get_agent_memory() -> Result<Vec<String>, String> {
-    let memory_file = ".aceey_memory.json";
-    if std::path::Path::new(memory_file).exists() {
-        if let Ok(contents) = std::fs::read_to_string(memory_file) {
+pub async fn get_agent_memory(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let memory_file = get_memory_file_path(&app)?;
+    if memory_file.exists() {
+        if let Ok(contents) = std::fs::read_to_string(&memory_file) {
             if let Ok(parsed) = serde_json::from_str::<Vec<String>>(&contents) {
                 return Ok(parsed);
             }
@@ -12,11 +23,11 @@ pub async fn get_agent_memory() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
-pub async fn clear_agent_memory() -> Result<(), String> {
-    let memory_file = ".aceey_memory.json";
+pub async fn clear_agent_memory(app: tauri::AppHandle) -> Result<(), String> {
+    let memory_file = get_memory_file_path(&app)?;
     let empty: Vec<String> = vec![];
     if let Ok(json) = serde_json::to_string(&empty) {
-        if std::fs::write(memory_file, json).is_ok() {
+        if std::fs::write(&memory_file, json).is_ok() {
             return Ok(());
         }
     }
@@ -25,6 +36,7 @@ pub async fn clear_agent_memory() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn analyze_error(
+    app: tauri::AppHandle,
     source_code: String,
     problem_description: String,
     error_type: String,
@@ -34,11 +46,11 @@ pub async fn analyze_error(
     actual_output: String,
     groq_api_key: String,
 ) -> Result<String, String> {
-    let memory_file = ".aceey_memory.json";
+    let memory_file = get_memory_file_path(&app)?;
     let mut error_history: Vec<String> = vec![];
     
-    if std::path::Path::new(memory_file).exists() {
-        if let Ok(contents) = std::fs::read_to_string(memory_file) {
+    if memory_file.exists() {
+        if let Ok(contents) = std::fs::read_to_string(&memory_file) {
             if let Ok(parsed) = serde_json::from_str::<Vec<String>>(&contents) {
                 error_history = parsed;
                 println!("🧠 從本地檔案讀取到歷史記憶: {:?}", error_history);
@@ -151,7 +163,7 @@ If the error is a general logic problem not tied to one line, use 0 as line_numb
             error_history = error_history.into_iter().skip(len - 20).collect();
         }
         if let Ok(json) = serde_json::to_string(&error_history) {
-            if std::fs::write(memory_file, json).is_ok() {
+            if std::fs::write(&memory_file, json).is_ok() {
                 println!("💾 已將記憶寫入本地檔案 .aceey_memory.json: {:?}", error_history);
             } else {
                 println!("⚠️ 無法寫入本地記憶檔案 .aceey_memory.json");

@@ -30,7 +30,7 @@ let appSettings = {
 };
 let settingsStore = null;
 
-async function initSettingsStore() {
+async function initApp() {
     try {
         const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
         const storeModule = window.__TAURI__?.store || window.__TAURI_PLUGIN_STORE__;
@@ -49,6 +49,7 @@ async function initSettingsStore() {
         appSettings.autoTriggerRE = await settingsStore.get('autoTriggerRE') ?? true;
         appSettings.autoTriggerWA = await settingsStore.get('autoTriggerWA') ?? true;
         appSettings.autoTriggerTLE = await settingsStore.get('autoTriggerTLE') ?? true;
+        console.log("🔍 [狀態追蹤] 啟動時從 Store 讀到的 Groq API Key:", appSettings.groqApiKey);
 
         // --- Developer QoL: .env Fallback ---
         if (!appSettings.clistUsername || !appSettings.clistApiKey || !appSettings.groqApiKey) {
@@ -80,7 +81,7 @@ async function initSettingsStore() {
         }
         // ------------------------------------
 
-        // Apply to UI
+        // Apply to UI (Strict State Sync)
         document.getElementById('setting-clist-username').value = appSettings.clistUsername;
         document.getElementById('setting-clist-api-key').value = appSettings.clistApiKey;
         document.getElementById('setting-groq-api-key').value = appSettings.groqApiKey;
@@ -89,12 +90,72 @@ async function initSettingsStore() {
         document.getElementById('setting-trigger-wa').checked = appSettings.autoTriggerWA;
         document.getElementById('setting-trigger-tle').checked = appSettings.autoTriggerTLE;
     } catch (e) {
-        console.warn("Could not load settings store:", e);
+        console.error("❌ 權限不足，Store 加載失敗。", e);
     }
 }
 
 // Ensure it runs
-initSettingsStore();
+async function initializeBindings() {
+    await initApp();
+    
+    // Bind Auto-Save Listeners
+    ['setting-clist-username', 'setting-clist-api-key', 'setting-groq-api-key'].forEach(id => {
+        const el = document.getElementById(id);
+        console.log("🔍 [綁定追蹤] 尋找 Groq API Key 輸入框:", document.getElementById('setting-groq-api-key') ? "找到" : "找不到");
+        if (!el) {
+            console.error(`❌ 找不到 API Key 輸入框 (${id})，無法綁定存檔事件！`);
+        } else {
+            const key = id.replace('setting-', '').replace(/-([a-z])/g, g => g[1].toUpperCase());
+            el.addEventListener('input', (e) => updateStoreValue(key, e.target.value));
+            el.addEventListener('change', (e) => updateStoreValue(key, e.target.value));
+            console.log(`✅ 成功綁定 API Key 存檔事件 (${id})`);
+        }
+    });
+
+    ['setting-trigger-ce', 'setting-trigger-re', 'setting-trigger-wa', 'setting-trigger-tle'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) {
+            console.error(`❌ 找不到 Checkbox (${id})，無法綁定存檔事件！`);
+        } else {
+            const type = id.split('-').pop().toUpperCase(); // "ce" -> "CE"
+            const key = 'autoTrigger' + type;
+            el.addEventListener('change', (e) => updateStoreValue(key, e.target.checked));
+            console.log(`✅ 成功綁定 Checkbox 存檔事件 (${id})`);
+        }
+    });
+}
+
+// Ensure it runs regardless of script load timing
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeBindings);
+} else {
+    initializeBindings();
+}
+
+// Auto-Save Store Update Logic
+async function updateStoreValue(key, value) {
+    console.log("💾 [存檔追蹤] 觸發存檔！Key:", key, "Value:", value);
+    appSettings[key] = value;
+    
+    if (!settingsStore) {
+        console.warn("⚠️ settingsStore 尚未加載，嘗試重新加載...");
+        try {
+            const storeModule = window.__TAURI__?.store || window.__TAURI_PLUGIN_STORE__;
+            if (storeModule) {
+                settingsStore = await (storeModule.load ? storeModule.load('settings.json') : new storeModule.Store('settings.json'));
+            }
+        } catch (e) {
+            console.error("❌ 重新加載 Store 失敗，無法存檔：", e);
+            alert("⚠️ 設定存檔失敗！可能是權限不足，請重新啟動程式。");
+            return;
+        }
+    }
+    
+    if (settingsStore) {
+        await settingsStore.set(key, value);
+        await settingsStore.save();
+    }
+}
 
 async function renderAgentMemory() {
     try {
@@ -149,28 +210,7 @@ document.querySelectorAll('.settings-nav li').forEach(item => {
     });
 });
 
-// Auto-Save Bindings
-async function updateStoreValue(key, value) {
-    appSettings[key] = value;
-    if (settingsStore) {
-        await settingsStore.set(key, value);
-        await settingsStore.save();
-    }
-}
 
-['setting-clist-username', 'setting-clist-api-key', 'setting-groq-api-key'].forEach(id => {
-    const el = document.getElementById(id);
-    const key = id.replace('setting-', '').replace(/-([a-z])/g, g => g[1].toUpperCase());
-    el.addEventListener('change', (e) => updateStoreValue(key, e.target.value));
-});
-
-['setting-trigger-ce', 'setting-trigger-re', 'setting-trigger-wa', 'setting-trigger-tle'].forEach(id => {
-    const el = document.getElementById(id);
-    const type = id.split('-').pop().toUpperCase(); // "ce" -> "CE"
-    const key = 'autoTrigger' + type;
-    el.addEventListener('change', (e) => updateStoreValue(key, e.target.checked));
-});
-// ----------------------------
 
 // Initialize Monaco when loaded
 let DebugZoneWidget;
@@ -413,6 +453,27 @@ document.getElementById('run-btn').addEventListener('click', runCode);
 
 // --- Agent Workflow Pipeline ---
 async function agentWorkflowPipeline(verdict, failedCase) {
+    console.log("🚨 [攔截追蹤] 收到原始 verdict 字串: [" + verdict + "]");
+    // Execution Interceptor: Strongly respect visual checkbox
+    let normalizedVerdict = verdict.toLowerCase();
+    if (normalizedVerdict.includes('compile error') || normalizedVerdict === 'ce') normalizedVerdict = 'ce';
+    else if (normalizedVerdict.includes('runtime error') || normalizedVerdict === 're') normalizedVerdict = 're';
+    else if (normalizedVerdict.includes('wrong answer') || normalizedVerdict === 'wa') normalizedVerdict = 'wa';
+    else if (normalizedVerdict.includes('time limit') || normalizedVerdict === 'tle') normalizedVerdict = 'tle';
+
+    const checkboxId = `setting-trigger-${normalizedVerdict}`;
+    const checkbox = document.getElementById(checkboxId);
+    
+    if (!checkbox) {
+        console.warn(`⚠️ 找不到對應的 Checkbox (${normalizedVerdict})，預設不觸發 Agent`);
+        return;
+    }
+    
+    if (!checkbox.checked) {
+        console.log(`🚫 ${normalizedVerdict.toUpperCase()} 觸發已在設定中關閉，Agent 不介入`);
+        return; // 終止 Agent 流程
+    }
+
     if (!await checkTriggerPolicy(verdict)) return;
     
     const context = await prepareContext(failedCase);

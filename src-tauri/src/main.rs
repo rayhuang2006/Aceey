@@ -18,11 +18,26 @@ async fn compile_and_run(
 
 #[tauri::command]
 fn get_env_vars() -> std::collections::HashMap<String, String> {
+    use dotenvy::from_path;
+    use std::env;
+    use std::path::Path;
+
+    if dotenvy::dotenv().is_err() {
+        let _ = from_path(Path::new("../.env"));
+    }
+
+    println!("⚙️ 嘗試讀取環境變數: GROQ_API_KEY is_empty={}", env::var("GROQ_API_KEY").unwrap_or_default().is_empty());
+
     let mut map = std::collections::HashMap::new();
-    let _ = dotenvy::dotenv();
-    for (key, value) in std::env::vars() {
+    
+    // Ensure required keys are present
+    map.insert("CLIST_USERNAME".to_string(), env::var("CLIST_USERNAME").unwrap_or_default());
+    map.insert("CLIST_API_KEY".to_string(), env::var("CLIST_API_KEY").unwrap_or_default());
+    map.insert("GROQ_API_KEY".to_string(), env::var("GROQ_API_KEY").unwrap_or_default());
+
+    for (key, value) in env::vars() {
         if key.starts_with("VITE_") || key.ends_with("_API_KEY") || key.ends_with("_USERNAME") {
-            map.insert(key, value);
+            map.entry(key).or_insert(value);
         }
     }
     map
