@@ -86,7 +86,7 @@ button#run-btn .icon {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  height: calc(100% - 40px);
+  height: calc(100% - 40px - 22px);
 }
 
 #top-panels {
@@ -1156,8 +1156,50 @@ button#run-btn .icon {
 }
 
 .checkbox-wrapper span {
-    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.vscode-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+#setting-token-slider {
+    -webkit-appearance: none;
+    width: 200px;
+    height: 4px;
+    background: #3c3c3c;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+#setting-token-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #007acc;
+    cursor: pointer;
+    border: 2px solid #252526;
+}
+
+.vscode-input {
+    background-color: #3c3c3c;
     color: #cccccc;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    border-radius: 2px;
+    outline: none;
+    font-family: Consolas, monospace;
+    width: 100px;
+}
+
+.vscode-input:focus {
+    border-color: #007acc;
 }
 
 /* Agent Memory Section Styles */
@@ -1192,4 +1234,114 @@ button#run-btn .icon {
 
 .vs-secondary-btn:hover {
     background-color: #4d5155;
+}
+
+/* Status Bar */
+#status-bar {
+  height: 22px;
+  background-color: #222222;
+  color: #cccccc;
+  font-size: 11px;
+  font-family: Consolas, monospace;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  border-top: 1px solid #333333;
+}
+
+.status-item {
+  cursor: pointer;
+  padding: 0 8px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.status-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Quota Hover Panel */
+#quota-hover-panel {
+  display: none;
+  position: absolute;
+  bottom: 24px;
+  right: 10px;
+  width: 280px;
+  background-color: #252526;
+  border: 1px solid #454545;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  border-radius: 5px;
+  color: #ccc;
+  padding: 12px;
+  cursor: default;
+  z-index: 200;
+}
+
+#quota-monitor-trigger:hover #quota-hover-panel {
+  display: block;
+}
+
+.quota-panel-header {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 12px;
+  font-size: 12px;
+  border-bottom: 1px solid #454545;
+  padding-bottom: 6px;
+}
+
+.quota-model-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quota-model-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quota-model-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.quota-model-stats {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #aaa;
+}
+
+.quota-progress-bar-bg {
+  width: 100%;
+  height: 4px;
+  background-color: #333333;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.quota-progress-bar-fill {
+  height: 100%;
+  background-color: #4CAF50;
+  width: 0%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.quota-cost-row {
+  font-size: 11px;
+  color: #888;
+  text-align: right;
+}
+
+#quota-cost-text {
+  color: #4CAF50;
 }

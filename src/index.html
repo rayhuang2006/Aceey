@@ -170,6 +170,7 @@
             <ul class="settings-nav">
                 <li class="active" data-section="settings-credentials">Credentials</li>
                 <li data-section="settings-agent-behavior">Agent Behavior</li>
+                <li data-section="settings-finops">FinOps & Quota</li>
             </ul>
         </div>
         <div class="settings-content-wrapper">
@@ -252,6 +253,48 @@
                     </div>
                 </div>
 
+                <!-- FinOps & Quota Section -->
+                <div id="settings-finops" class="settings-section" style="display: none;">
+                    <h3 class="settings-section-title">FinOps & Quota</h3>
+                    
+                    <div class="setting-item">
+                        <label>Daily Token Budget</label>
+                        <div class="setting-desc">Set your maximum daily token limit for cost control.</div>
+                        <div class="vscode-slider-container">
+                            <input type="range" id="setting-token-slider" min="1000" max="150000" step="1000" value="50000">
+                            <input type="number" id="setting-token-budget" min="1000" max="150000" step="1000" value="50000" class="vscode-input">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <div class="status-bar-left">
+            <div class="status-item">Aceey IDE</div>
+        </div>
+        <div class="status-bar-right">
+            <div id="quota-monitor-trigger" class="status-item">
+                [Groq] <span id="quota-used">0</span> / <span id="quota-limit">50000</span> Tokens
+                
+                <div id="quota-hover-panel">
+                    <div class="quota-panel-header">API Quota Monitor</div>
+                    <div class="quota-panel-body">
+                        <div class="quota-model-row">
+                            <div class="quota-model-info">
+                                <span class="quota-model-name">Groq Llama 3 70B</span>
+                                <span class="quota-model-stats"><span id="quota-used-text">0</span> / <span id="quota-limit-text">50k</span></span>
+                            </div>
+                            <div class="quota-progress-bar-bg">
+                                <div id="quota-progress-bar-fill" class="quota-progress-bar-fill"></div>
+                            </div>
+                            <div class="quota-cost-row">Est. Cost: <span id="quota-cost-text">$0.0000</span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

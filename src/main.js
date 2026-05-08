@@ -26,7 +26,8 @@ let appSettings = {
     autoTriggerCE: true,
     autoTriggerRE: true,
     autoTriggerWA: true,
-    autoTriggerTLE: true
+    autoTriggerTLE: true,
+    tokenBudget: 50000
 };
 let settingsStore = null;
 
@@ -49,6 +50,7 @@ async function initApp() {
         appSettings.autoTriggerRE = await settingsStore.get('autoTriggerRE') ?? true;
         appSettings.autoTriggerWA = await settingsStore.get('autoTriggerWA') ?? true;
         appSettings.autoTriggerTLE = await settingsStore.get('autoTriggerTLE') ?? true;
+        appSettings.tokenBudget = await settingsStore.get('tokenBudget') ?? 50000;
         console.log("🔍 [狀態追蹤] 啟動時從 Store 讀到的 Groq API Key:", appSettings.groqApiKey);
 
         // --- Developer QoL: .env Fallback ---
@@ -89,6 +91,9 @@ async function initApp() {
         document.getElementById('setting-trigger-re').checked = appSettings.autoTriggerRE;
         document.getElementById('setting-trigger-wa').checked = appSettings.autoTriggerWA;
         document.getElementById('setting-trigger-tle').checked = appSettings.autoTriggerTLE;
+        
+        const tokenBudgetEl = document.getElementById('setting-token-budget');
+        if (tokenBudgetEl) tokenBudgetEl.value = appSettings.tokenBudget;
     } catch (e) {
         console.error("❌ 權限不足，Store 加載失敗。", e);
     }
@@ -123,6 +128,33 @@ async function initializeBindings() {
             console.log(`✅ 成功綁定 Checkbox 存檔事件 (${id})`);
         }
     });
+
+    const tokenBudgetInput = document.getElementById('setting-token-budget');
+    const tokenBudgetSlider = document.getElementById('setting-token-slider');
+
+    if (tokenBudgetInput && tokenBudgetSlider) {
+        tokenBudgetInput.value = appSettings.tokenBudget || 50000;
+        tokenBudgetSlider.value = appSettings.tokenBudget || 50000;
+
+        const updateBudget = (val) => {
+            const parsed = parseInt(val) || 50000;
+            tokenBudgetInput.value = parsed;
+            tokenBudgetSlider.value = parsed;
+            updateStoreValue('tokenBudget', parsed);
+            updateTokenMonitorUI();
+        };
+
+        tokenBudgetInput.addEventListener('change', (e) => updateBudget(e.target.value));
+        tokenBudgetSlider.addEventListener('input', (e) => updateBudget(e.target.value));
+    }
+
+    initQuotaMonitor();
+}
+
+// Quota Monitor Hover Panel Logic
+function initQuotaMonitor() {
+    // Initial load
+    updateTokenMonitorUI();
 }
 
 // Ensure it runs regardless of script load timing
@@ -486,6 +518,65 @@ async function agentWorkflowPipeline(verdict, failedCase) {
         await executeAction(agentResponse);
     } else {
         loadCurrentTab(); // recover from error
+    }
+    
+    // Update Token Monitor UI after agent execution
+    await updateTokenMonitorUI();
+}
+
+// --- Update Token Monitor UI ---
+async function updateTokenMonitorUI() {
+    try {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+        if (!invoke) return;
+
+        const usages = await invoke('get_token_usage');
+        if (!usages) return;
+
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
+
+        usages.forEach(usage => {
+            totalPromptTokens += usage.prompt_tokens || 0;
+            totalCompletionTokens += usage.completion_tokens || 0;
+        });
+
+        const totalTokens = totalPromptTokens + totalCompletionTokens;
+        
+        // Input (Prompt) Cost: $0.59 / 1,000,000 tokens
+        // Output (Completion) Cost: $0.79 / 1,000,000 tokens
+        const estimatedCost = (totalPromptTokens * 0.59 / 1000000) + (totalCompletionTokens * 0.79 / 1000000);
+        const formattedCost = estimatedCost.toFixed(4);
+
+        const budget = appSettings.tokenBudget || 50000;
+        const percentage = Math.min((totalTokens / budget) * 100, 100);
+
+        const fillEl = document.getElementById('quota-progress-bar-fill');
+        if (fillEl) {
+            fillEl.style.width = percentage + '%';
+            if (percentage >= 100) fillEl.style.backgroundColor = '#F44336'; // Red
+            else if (percentage > 80) fillEl.style.backgroundColor = '#FF9800'; // Orange
+            else fillEl.style.backgroundColor = '#4CAF50'; // Green
+        }
+
+        const formatK = (num) => num >= 1000 ? (num / 1000).toFixed(0) + 'k' : num.toString();
+        
+        const limitText = document.getElementById('quota-limit-text');
+        if (limitText) limitText.textContent = formatK(budget);
+        
+        const usedText = document.getElementById('quota-used-text');
+        if (usedText) usedText.textContent = formatK(totalTokens);
+
+        const usedSpan = document.getElementById('quota-used');
+        const limitSpan = document.getElementById('quota-limit');
+        const costDiv = document.getElementById('quota-cost-text');
+
+        if (usedSpan) usedSpan.textContent = totalTokens;
+        if (limitSpan) limitSpan.textContent = budget;
+        if (costDiv) costDiv.textContent = `$${formattedCost}`;
+
+    } catch (e) {
+        console.error("Failed to update token monitor UI:", e);
     }
 }
 
