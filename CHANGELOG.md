@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/rayhuang2006/Aceey/compare/v1.1.0...v1.1.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* sync tauri versions to unblock release build ([f68134a](https://github.com/rayhuang2006/Aceey/commit/f68134acb532f1b89f13a5e834f88e34c1bc1a88))
+
 ## [1.1.0](https://github.com/rayhuang2006/Aceey/compare/v1.0.2...v1.1.0) (2026-05-09)
 
 
