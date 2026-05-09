@@ -3,12 +3,19 @@
   "version": "1.0.2",
   "description": "Aceey - Desktop IDE for competitive programming",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
     "tauri": "tauri"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0"
+    "@tauri-apps/cli": "^2.0.0",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "vite": "^5.2.0"
   },
   "dependencies": {
-    "@tauri-apps/plugin-store": "^2.4.2"
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-store": "^2.4.2",
+    "monaco-editor": "^0.55.1",
+    "vue": "^3.4.21"
   }
 }
