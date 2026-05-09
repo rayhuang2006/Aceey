@@ -46,9 +46,14 @@ a { text-decoration: none; }
     border-radius: 6px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     border: 1px solid transparent;
     font-family: var(--font-ui);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 /* Scroll Animations */
@@ -71,7 +76,6 @@ a { text-decoration: none; }
     align-items: center;
     text-align: center;
     background: linear-gradient(180deg, #111 0%, var(--bg-darker) 100%);
-    border-bottom: 1px solid var(--border);
     padding-top: 80px;
 }
 
@@ -100,7 +104,7 @@ a { text-decoration: none; }
 .btn-download:hover {
     background-color: var(--accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 20px rgba(0, 122, 204, 0.4);
 }
 
 .btn-text-group {
@@ -152,11 +156,17 @@ a { text-decoration: none; }
     border: 1px solid var(--border);
     padding: 10px 20px;
     font-size: 0.95rem;
+    transition: all 0.2s ease;
 }
-.scenario-btn:hover, .scenario-btn.active {
-    background-color: #333;
-    border-color: #555;
+.scenario-btn:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+.scenario-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
     color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
 }
 
 /* IDE Mockup */
@@ -422,6 +432,12 @@ a { text-decoration: none; }
     border-radius: 8px;
     border: 1px solid var(--border);
     text-align: center;
+    transition: all 0.3s ease;
+}
+.step-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 30px rgba(0, 122, 204, 0.15);
 }
 .step-number {
     display: inline-block;
@@ -457,6 +473,15 @@ a { text-decoration: none; }
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+.feature-row:hover .feature-image img {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+.feature-row:hover .feature-text {
+    transform: translateY(-2px);
+    transition: transform 0.3s ease;
 }
 
 /* Performance */
@@ -472,6 +497,12 @@ a { text-decoration: none; }
     border-radius: 8px;
     border: 1px solid var(--border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+.perf-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 30px rgba(0, 122, 204, 0.15);
 }
 .perf-card h4 { color: var(--accent); margin-bottom: 15px; }
 
@@ -490,6 +521,12 @@ a { text-decoration: none; }
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
+.comparison-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+.comparison-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
 .comparison-table th { background-color: #181818; }
 .highlight-col { background-color: rgba(0, 122, 204, 0.1); }
 
@@ -499,6 +536,16 @@ a { text-decoration: none; }
 .faq-item { margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
 .faq-question { font-weight: 600; margin-bottom: 10px; color: #fff; }
 .faq-answer { font-size: 0.95rem; color: var(--text-muted); }
+
+/* Bottom CTA */
+.cta-section {
+    padding: 6rem 0;
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg-darker) 0%, #111 100%);
+}
+.cta-section .section-title {
+    margin-bottom: 2rem;
+}
 
 footer {
     text-align: center;
