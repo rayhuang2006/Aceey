@@ -5,62 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aceey - 競技程式選手的 AI 訓練夥伴</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts for UI and Code -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="hero">
-        <div class="container">
+    <header class="hero hero-full">
+        <div class="container hero-content animate-on-scroll">
             <h1>Aceey</h1>
             <h2>競技程式選手的 AI 訓練夥伴</h2>
             <p class="subtitle">市場上有大量給開發者用的 AI IDE，也有大量給刷題者用的 OJ 平台。但沒有人把兩者結合。</p>
-            <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-primary" target="_blank">下載 Aceey</a>
+            <div class="download-container">
+                <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-download download-link" target="_blank">
+                    <div class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24" fill="currentColor">
+                            <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+                        </svg>
+                    </div>
+                    <div class="btn-text-group">
+                        <span class="btn-main-text">Download for macOS</span>
+                        <span class="btn-sub-text">macOS Apple Silicon (.dmg)</span>
+                    </div>
+                </a>
+            </div>
+            <div class="hero-image-wrapper">
+                <img src="./ide.png" alt="Aceey IDE" class="hero-screenshot">
+            </div>
         </div>
     </header>
 
     <section class="demo-section">
-        <div class="container">
-            <h3>體驗蘇格拉底式引導</h3>
-            <p>選擇一個常見錯誤，親自體驗 Aceey 如何引導你找出問題，而不是直接給你答案。</p>
+        <div class="container animate-on-scroll">
+            <h3 class="section-title">體驗蘇格拉底式引導</h3>
+            <p class="section-desc">Aceey 的核心是蘇格拉底式引導——不給答案，只給提示。選一個常見錯誤，親自體驗 Agent 怎麼幫你找到問題。</p>
             
             <div class="scenario-buttons">
                 <button class="btn scenario-btn" data-scenario="w2">沒處理 w=2</button>
-                <button class="btn scenario-btn" data-scenario="overflow">Integer Overflow</button>
-                <button class="btn scenario-btn" data-scenario="missing-input">少讀一組輸入</button>
+                <button class="btn scenario-btn" data-scenario="logic">條件邏輯錯誤</button>
+                <button class="btn scenario-btn" data-scenario="include">未包含標頭檔</button>
             </div>
 
             <div class="ide-mockup">
-                <div class="ide-left">
-                    <div class="panel-header">Problem: 4A - Watermelon</div>
-                    <div class="problem-content">
-                        <p>One hot summer day Pete and his friend Billy decided to buy a watermelon. They chose the biggest and the ripest one, in their opinion. After that the watermelon was weighed, and the scales showed w kilos.</p>
-                        <p>They rushed home, dying of thirst, and decided to divide the berry, however they faced a hard problem.</p>
-                        <p>Pete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos, at the same time it is not obligatory that the parts are equal.</p>
-                        <p><strong>Input:</strong> The first (and the only) input line contains integer number w (1 ≤ w ≤ 100).</p>
-                        <p><strong>Output:</strong> Print YES, if the boys can divide the watermelon into two parts, each of them weighing even number of kilos; and NO in the opposite case.</p>
+                <!-- Top Split Pane -->
+                <div class="ide-top">
+                    <!-- Left: Problem Description -->
+                    <div class="ide-left">
+                        <div class="panel-header">Problem: 4A - Watermelon</div>
+                        <div class="problem-content">
+                            <p>One hot summer day Pete and his friend Billy decided to buy a watermelon. They chose the biggest and the ripest one, in their opinion. After that the watermelon was weighed, and the scales showed w kilos.</p>
+                            <p>They rushed home, dying of thirst, and decided to divide the berry, however they faced a hard problem.</p>
+                            <p>Pete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos, at the same time it is not obligatory that the parts are equal.</p>
+                            <p><strong>Input:</strong> The first (and the only) input line contains integer number w (1 ≤ w ≤ 100).</p>
+                            <p><strong>Output:</strong> Print YES, if the boys can divide the watermelon into two parts, each of them weighing even number of kilos; and NO in the opposite case.</p>
+                        </div>
+                    </div>
+                    <!-- Right: Editor -->
+                    <div class="ide-right">
+                        <div class="editor-header">
+                            <div class="tabs">
+                                <span class="tab active">main.cpp</span>
+                            </div>
+                            <div class="editor-actions">
+                                <button class="btn btn-run" id="run-btn">
+                                    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M11.5 8L4.5 12V4l7 4z"/></svg> Run
+                                </button>
+                            </div>
+                        </div>
+                        <div class="editor-content" id="editor">
+                            <!-- Line numbers and code will be injected here by JS -->
+                        </div>
                     </div>
                 </div>
-                <div class="ide-right">
-                    <div class="editor-header">
-                        <div class="tabs">
-                            <span class="tab active">main.cpp</span>
+                
+                <!-- Bottom Split Pane: Test Cases -->
+                <div class="ide-bottom">
+                    <div class="test-panel-header">
+                        <span class="tab active">Test Cases</span>
+                    </div>
+                    <div class="test-panel-content">
+                        <div class="test-case-tabs">
+                            <div class="test-case-tab active">Case 1</div>
                         </div>
-                        <button class="btn btn-run" id="run-btn">Run</button>
-                    </div>
-                    <div class="editor-content" id="editor">
-                        <div class="line-numbers" id="line-numbers">1</div>
-                        <div class="code-area" id="code-area"></div>
-                    </div>
-                    
-                    <!-- AI Bubble Overlay -->
-                    <div class="ai-bubble hidden" id="ai-bubble">
-                        <div class="ai-header">🤖 Aceey Agent</div>
-                        <div class="ai-content" id="ai-text"></div>
-                    </div>
-
-                    <div class="terminal" id="terminal">
-                        <div class="terminal-header">Terminal</div>
-                        <div class="terminal-content" id="terminal-content"></div>
+                        <div class="test-case-grid">
+                            <div class="test-col">
+                                <div class="col-title">Input</div>
+                                <div class="col-content" id="tc-input">2</div>
+                            </div>
+                            <div class="test-col">
+                                <div class="col-title">Expected Output</div>
+                                <div class="col-content" id="tc-expected">NO</div>
+                            </div>
+                            <div class="test-col">
+                                <div class="col-title">Actual Output</div>
+                                <div class="col-content" id="tc-actual"></div>
+                            </div>
+                            <div class="test-col">
+                                <div class="col-title">Verdict</div>
+                                <div class="col-content verdict" id="tc-verdict"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -69,27 +110,46 @@
 
     <section class="features-section">
         <div class="container">
-            <h3>核心功能</h3>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h4>🧠 蘇格拉底式引導</h4>
-                    <p>不直接給答案，而是透過提問引導你思考，培養真正的解題能力與 Debug 嗅覺。</p>
+            <h3 class="section-title animate-on-scroll">核心功能</h3>
+            
+            <!-- Zig-zag feature 1: Left Text, Right Image -->
+            <div class="feature-row animate-on-scroll">
+                <div class="feature-text">
+                    <h4>蘇格拉底式引導</h4>
+                    <p>不直接給答案，而是透過提問引導你思考，培養真正的解題能力與除錯直覺。</p>
                 </div>
-                <div class="feature-card">
-                    <h4>📚 錯誤記憶系統 (Error Memory)</h4>
+                <div class="feature-image">
+                    <img src="./debug-agent.png" alt="Debug Agent">
+                </div>
+            </div>
+            
+            <!-- Zig-zag feature 2: Left Image, Right Text -->
+            <div class="feature-row reverse animate-on-scroll">
+                <div class="feature-text">
+                    <h4>錯誤記憶系統 (Error Memory)</h4>
                     <p>自動追蹤你的歷史弱點與常犯錯誤，針對性地加強訓練，避免重蹈覆轍。</p>
                 </div>
-                <div class="feature-card">
-                    <h4>💰 Token 成本監控 (FinOps)</h4>
-                    <p>精打細算每一次 API 呼叫，強調每次偵錯成本趨近於 $0，安心無負擔。</p>
+                <div class="feature-image">
+                    <img src="./settings-behavior.png" alt="Error Memory">
+                </div>
+            </div>
+            
+            <!-- Zig-zag feature 3: Left Text, Right Image -->
+            <div class="feature-row animate-on-scroll">
+                <div class="feature-text">
+                    <h4>賽程日曆與備賽計畫</h4>
+                    <p>內建各大平台競賽行事曆，並能根據比賽時間反推每日訓練菜單，維持手感。</p>
+                </div>
+                <div class="feature-image">
+                    <img src="./calendar.png" alt="Calendar and Training Plan">
                 </div>
             </div>
         </div>
     </section>
 
     <section class="comparison-section">
-        <div class="container">
-            <h3>競品比較</h3>
+        <div class="container animate-on-scroll">
+            <h3 class="section-title">為什麼不直接用 Cursor 或 LeetCode？</h3>
             <div class="table-responsive">
                 <table class="comparison-table">
                     <thead>
@@ -111,27 +171,46 @@
                         </tr>
                         <tr>
                             <td>AI 蘇格拉底引導</td>
-                            <td class="highlight-col">✅ 核心功能</td>
-                            <td>❌ 無</td>
-                            <td>❌ 無</td>
-                            <td>❌ 直接給 code</td>
+                            <td class="highlight-col">核心功能</td>
+                            <td>無</td>
+                            <td>無</td>
+                            <td>直接給 Code</td>
                         </tr>
                         <tr>
                             <td>錯誤記憶系統</td>
-                            <td class="highlight-col">✅ 自動追蹤</td>
-                            <td>❌ 無</td>
-                            <td>❌ 無</td>
-                            <td>❌ 無</td>
+                            <td class="highlight-col">自動追蹤</td>
+                            <td>無</td>
+                            <td>無</td>
+                            <td>無</td>
                         </tr>
                         <tr>
                             <td>本地編譯與測資</td>
-                            <td class="highlight-col">✅ 支援</td>
-                            <td>✅ 支援</td>
-                            <td>❌ 雲端</td>
-                            <td>⚠️ 需手動配置</td>
+                            <td class="highlight-col">支援</td>
+                            <td>支援</td>
+                            <td>雲端</td>
+                            <td>需手動配置</td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container animate-on-scroll">
+            <h3 class="section-title">準備好讓 AI 成為你的訓練夥伴了嗎？</h3>
+            <div class="download-container">
+                <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-download download-link" target="_blank">
+                    <div class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24" fill="currentColor">
+                            <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+                        </svg>
+                    </div>
+                    <div class="btn-text-group">
+                        <span class="btn-main-text">Download for macOS</span>
+                        <span class="btn-sub-text">macOS Apple Silicon (.dmg)</span>
+                    </div>
+                </a>
             </div>
         </div>
     </section>
