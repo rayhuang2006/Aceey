@@ -1,5 +1,5 @@
 const scenarios = {
-    'w2': {
+    'wa': {
         code: [
             '<span class="keyword">#include</span> <span class="string">&lt;iostream&gt;</span>',
             '<span class="keyword">using namespace</span> std;',
@@ -17,11 +17,14 @@ const scenarios = {
             '}'
         ],
         highlightLine: 8,
-        agentMsg: "w=2 時，可以分成兩個偶數嗎？",
+        agentMsg: "你的程式碼在 w 是最小的偶數 (w=2) 時，邏輯依然正確嗎？",
         errorClass: "verdict-wa",
-        errorText: "WA"
+        errorText: "WA",
+        input: "2",
+        expected: "NO",
+        actual: "YES"
     },
-    'logic': {
+    're': {
         code: [
             '<span class="keyword">#include</span> <span class="string">&lt;iostream&gt;</span>',
             '<span class="keyword">using namespace</span> std;',
@@ -29,41 +32,45 @@ const scenarios = {
             '<span class="type">int</span> <span class="function">main</span>() {',
             '    <span class="type">int</span> w;',
             '    cin >> w;',
+            '    <span class="type">int</span> a = w - <span class="number">2</span>;',
+            '    <span class="type">int</span> ratio = w / a;',
             '    ',
-            '    <span class="keyword">if</span> (w % <span class="number">2</span> != <span class="number">0</span>) {',
-            '        cout << <span class="string">"YES\\n"</span>;',
-            '    } <span class="keyword">else</span> {',
-            '        cout << <span class="string">"NO\\n"</span>;',
-            '    }',
+            '    <span class="keyword">if</span> (ratio % <span class="number">2</span> == <span class="number">0</span>) cout << <span class="string">"YES\\n"</span>;',
+            '    <span class="keyword">else</span> cout << <span class="string">"NO\\n"</span>;',
             '    <span class="keyword">return</span> <span class="number">0</span>;',
             '}'
         ],
         highlightLine: 8,
-        agentMsg: "題目要求分成兩個『偶數』，你的條件是不是寫反了？",
-        errorClass: "verdict-wa",
-        errorText: "WA"
+        agentMsg: "當輸入的 w 為 2 時，變數 a 會變成什麼？這會導致什麼嚴重的執行期錯誤？",
+        errorClass: "verdict-error",
+        errorText: "Runtime Error (SIGFPE)",
+        input: "2",
+        expected: "NO",
+        actual: "N/A"
     },
-    'include': {
+    'tle': {
         code: [
-            '<span class="comment">// 漏寫標頭檔</span>',
+            '<span class="keyword">#include</span> <span class="string">&lt;iostream&gt;</span>',
             '<span class="keyword">using namespace</span> std;',
             '',
             '<span class="type">int</span> <span class="function">main</span>() {',
             '    <span class="type">int</span> w;',
             '    cin >> w;',
-            '    ',
-            '    <span class="keyword">if</span> (w > <span class="number">2</span> && w % <span class="number">2</span> == <span class="number">0</span>) {',
-            '        cout << <span class="string">"YES\\n"</span>;',
-            '    } <span class="keyword">else</span> {',
-            '        cout << <span class="string">"NO\\n"</span>;',
+            '    <span class="type">int</span> i = <span class="number">2</span>;',
+            '    <span class="keyword">while</span> (i < w) {',
+            '        <span class="keyword">if</span> (w % i == <span class="number">0</span>) <span class="keyword">return</span> cout << <span class="string">"YES\\n"</span>, <span class="number">0</span>;',
             '    }',
+            '    cout << <span class="string">"NO\\n"</span>;',
             '    <span class="keyword">return</span> <span class="number">0</span>;',
             '}'
         ],
-        highlightLine: 6,
-        agentMsg: "編譯器不認得 cin 和 cout，是不是忘記引入哪個標準函式庫了？",
-        errorClass: "verdict-error",
-        errorText: "Compilation Error"
+        highlightLine: 8,
+        agentMsg: "你的 while 迴圈條件依賴變數 i，但在迴圈內部卻沒有看到更新 i 的操作。這會導致什麼結果？",
+        errorClass: "verdict-tle",
+        errorText: "Time Limit Exceeded",
+        input: "8",
+        expected: "YES",
+        actual: "N/A"
     }
 };
 
@@ -72,13 +79,15 @@ const runBtn = document.getElementById('run-btn');
 const scenarioBtns = document.querySelectorAll('.scenario-btn');
 
 // Test Case Elements
+const tcInput = document.getElementById('tc-input');
+const tcExpected = document.getElementById('tc-expected');
 const tcActual = document.getElementById('tc-actual');
 const tcVerdict = document.getElementById('tc-verdict');
 
 let currentScenario = null;
 let isTyping = false;
 
-// 1. Fetch Latest Release for all download buttons
+// 1. Fetch Latest Release
 async function fetchLatestRelease() {
     try {
         const response = await fetch('https://api.github.com/repos/rayhuang2006/Aceey/releases/latest');
@@ -91,168 +100,98 @@ async function fetchLatestRelease() {
             downloadLinks.forEach(link => {
                 link.href = dmgAsset.browser_download_url;
                 const subText = link.querySelector('.btn-sub-text');
-                if (subText) {
-                    subText.innerText = `macOS Apple Silicon (${data.tag_name})`;
-                }
+                if (subText) subText.innerText = `macOS Apple Silicon (${data.tag_name})`;
             });
         }
-    } catch (error) {
-        console.error("Failed to fetch GitHub release", error);
-    }
+    } catch (e) {}
 }
 fetchLatestRelease();
 
-// 2. Intersection Observer for scroll animations
-const observerOptions = {
-    root: null,
-    rootMargin: '0px',
-    threshold: 0.15
-};
-
-const observer = new IntersectionObserver((entries, observer) => {
+// 2. Scroll Animations
+const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
             observer.unobserve(entry.target);
         }
     });
-}, observerOptions);
+}, { threshold: 0.15 });
 
-document.querySelectorAll('.animate-on-scroll').forEach(el => {
-    observer.observe(el);
-});
+document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
 
 function resetIDE() {
     editorContent.innerHTML = '';
-    tcActual.innerHTML = '';
+    tcInput.innerText = currentScenario ? currentScenario.input : '';
+    tcExpected.innerText = currentScenario ? currentScenario.expected : '';
+    tcActual.innerText = '';
     tcVerdict.innerHTML = '<span class="verdict-pending">Pending...</span>';
     runBtn.disabled = true;
 }
 
 async function typeCode(codeLines) {
     isTyping = true;
-    
     const container = document.createElement('div');
     container.className = 'code-container';
     editorContent.appendChild(container);
     
     for (let i = 0; i < codeLines.length; i++) {
-        const lineText = codeLines[i];
-        
         const lineWrapper = document.createElement('div');
         lineWrapper.className = 'code-line-wrapper';
         lineWrapper.id = `line-wrapper-${i + 1}`;
-        
-        const lineNum = document.createElement('div');
-        lineNum.className = 'line-number';
-        lineNum.innerText = i + 1;
-        
-        const lineContent = document.createElement('div');
-        lineContent.className = 'line-content';
-        lineContent.id = `line-${i + 1}`;
-        lineContent.innerHTML = lineText || ' ';
-        
-        lineWrapper.appendChild(lineNum);
-        lineWrapper.appendChild(lineContent);
+        lineWrapper.innerHTML = `<div class="line-number">${i + 1}</div><div class="line-content" id="line-${i + 1}">${codeLines[i] || ' '}</div>`;
         container.appendChild(lineWrapper);
-        
         await new Promise(r => setTimeout(r, 40));
     }
-    
     isTyping = false;
     runBtn.disabled = false;
 }
 
 async function typeAgentMessage(widgetTextElement, message) {
-    let currentText = '';
     let index = 0;
-    
     return new Promise(resolve => {
         const interval = setInterval(() => {
-            currentText += message[index];
-            widgetTextElement.innerText = currentText;
-            index++;
-            
+            widgetTextElement.innerText += message[index++];
             if (index >= message.length) {
                 clearInterval(interval);
                 resolve();
             }
-        }, 40); // 40ms per character
+        }, 30);
     });
 }
 
 scenarioBtns.forEach(btn => {
     btn.addEventListener('click', async () => {
         if (isTyping) return;
-        
         scenarioBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
+        currentScenario = scenarios[btn.getAttribute('data-scenario')];
         resetIDE();
-        
-        const scenarioKey = btn.getAttribute('data-scenario');
-        currentScenario = scenarios[scenarioKey];
-        
         await typeCode(currentScenario.code);
     });
 });
 
 runBtn.addEventListener('click', () => {
     if (!currentScenario || isTyping) return;
-    
     runBtn.disabled = true;
-    
     tcVerdict.innerHTML = '<span class="verdict-pending">Running...</span>';
     
     setTimeout(() => {
-        if (currentScenario.errorText === 'Compilation Error') {
-            tcActual.innerHTML = 'N/A';
-        } else {
-            tcActual.innerHTML = currentScenario.errorText === 'WA' ? 'YES' : 'Timeout';
-        }
-        
+        tcActual.innerText = currentScenario.actual;
         tcVerdict.innerHTML = `<span class="${currentScenario.errorClass}">${currentScenario.errorText}</span>`;
         
         setTimeout(async () => {
-            const lineContent = document.getElementById(`line-${currentScenario.highlightLine}`);
-            if (lineContent) {
-                lineContent.classList.add('highlight-bg');
-            }
-            
+            document.getElementById(`line-${currentScenario.highlightLine}`).classList.add('highlight-bg');
             const zoneWidget = document.createElement('div');
             zoneWidget.className = 'zone-widget';
-            
-            // Using SVG instead of emoji
-            zoneWidget.innerHTML = `
-                <div class="zone-content">
-                    <div class="zone-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                    </div>
-                    <div class="zone-text" id="zone-msg"></div>
-                </div>
-            `;
-            
-            const lineWrapper = document.getElementById(`line-wrapper-${currentScenario.highlightLine}`);
-            if (lineWrapper) {
-                lineWrapper.after(zoneWidget);
-            }
-            
-            const zoneMsg = document.getElementById('zone-msg');
-            await typeAgentMessage(zoneMsg, currentScenario.agentMsg);
-            
+            zoneWidget.innerHTML = `<div class="zone-content"><div class="zone-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></div><div class="zone-text" id="zone-msg"></div></div>`;
+            document.getElementById(`line-wrapper-${currentScenario.highlightLine}`).after(zoneWidget);
+            await typeAgentMessage(document.getElementById('zone-msg'), currentScenario.agentMsg);
             runBtn.disabled = false;
         }, 600);
-        
     }, 600);
 });
 
-// Init first scenario on load
+// Init
 window.addEventListener('DOMContentLoaded', () => {
-    if (scenarioBtns.length > 0) {
-        scenarioBtns[0].click();
-    }
+    scenarioBtns[0].click();
 });

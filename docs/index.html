@@ -9,7 +9,7 @@
 </head>
 <body>
     <header class="hero hero-full">
-        <div class="container hero-content animate-on-scroll">
+        <div class="container animate-on-scroll">
             <h1>Aceey</h1>
             <h2>競技程式選手的 AI 訓練夥伴</h2>
             <p class="subtitle">市場上有大量給開發者用的 AI IDE，也有大量給刷題者用的 OJ 平台。但沒有人把兩者結合。</p>
@@ -38,26 +38,22 @@
             <p class="section-desc">Aceey 的核心是蘇格拉底式引導——不給答案，只給提示。選一個常見錯誤，親自體驗 Agent 怎麼幫你找到問題。</p>
             
             <div class="scenario-buttons">
-                <button class="btn scenario-btn" data-scenario="w2">沒處理 w=2</button>
-                <button class="btn scenario-btn" data-scenario="logic">條件邏輯錯誤</button>
-                <button class="btn scenario-btn" data-scenario="include">未包含標頭檔</button>
+                <button class="btn scenario-btn" data-scenario="wa">WA 邏輯漏洞</button>
+                <button class="btn scenario-btn" data-scenario="re">RE 執行期錯誤</button>
+                <button class="btn scenario-btn" data-scenario="tle">TLE 無窮迴圈</button>
             </div>
 
             <div class="ide-mockup">
-                <!-- Top Split Pane -->
                 <div class="ide-top">
-                    <!-- Left: Problem Description -->
                     <div class="ide-left">
                         <div class="panel-header">Problem: 4A - Watermelon</div>
                         <div class="problem-content">
-                            <p>One hot summer day Pete and his friend Billy decided to buy a watermelon. They chose the biggest and the ripest one, in their opinion. After that the watermelon was weighed, and the scales showed w kilos.</p>
-                            <p>They rushed home, dying of thirst, and decided to divide the berry, however they faced a hard problem.</p>
-                            <p>Pete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos, at the same time it is not obligatory that the parts are equal.</p>
+                            <p>One hot summer day Pete and his friend Billy decided to buy a watermelon. After that the watermelon was weighed, and the scales showed w kilos.</p>
+                            <p>Pete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos.</p>
                             <p><strong>Input:</strong> The first (and the only) input line contains integer number w (1 ≤ w ≤ 100).</p>
                             <p><strong>Output:</strong> Print YES, if the boys can divide the watermelon into two parts, each of them weighing even number of kilos; and NO in the opposite case.</p>
                         </div>
                     </div>
-                    <!-- Right: Editor -->
                     <div class="ide-right">
                         <div class="editor-header">
                             <div class="tabs">
@@ -69,13 +65,10 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="editor-content" id="editor">
-                            <!-- Line numbers and code will be injected here by JS -->
-                        </div>
+                        <div class="editor-content" id="editor"></div>
                     </div>
                 </div>
                 
-                <!-- Bottom Split Pane: Test Cases -->
                 <div class="ide-bottom">
                     <div class="test-panel-header">
                         <span class="tab active">Test Cases</span>
@@ -87,11 +80,11 @@
                         <div class="test-case-grid">
                             <div class="test-col">
                                 <div class="col-title">Input</div>
-                                <div class="col-content" id="tc-input">2</div>
+                                <div class="col-content" id="tc-input"></div>
                             </div>
                             <div class="test-col">
                                 <div class="col-title">Expected Output</div>
-                                <div class="col-content" id="tc-expected">NO</div>
+                                <div class="col-content" id="tc-expected"></div>
                             </div>
                             <div class="test-col">
                                 <div class="col-title">Actual Output</div>
@@ -108,11 +101,32 @@
         </div>
     </section>
 
+    <section class="how-it-works">
+        <div class="container animate-on-scroll">
+            <h3 class="section-title">運作流程</h3>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>匯入題目與測資</h4>
+                    <p>自動從 Codeforces、LeetCode 等平台同步題目內容、測資與範例 I/O。</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>離線編譯與執行</h4>
+                    <p>整合本地 g++ 工具鏈，在每次存檔後自動編譯並在沙盒中運行所有測試案例。</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>AI 蘇格拉底引導</h4>
+                    <p>當程式碼出錯時，AI 不會直接給出修復方案，而是引導你找出根本原因。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="features-section">
         <div class="container">
             <h3 class="section-title animate-on-scroll">核心功能</h3>
-            
-            <!-- Zig-zag feature 1: Left Text, Right Image -->
             <div class="feature-row animate-on-scroll">
                 <div class="feature-text">
                     <h4>蘇格拉底式引導</h4>
@@ -122,8 +136,6 @@
                     <img src="./debug-agent.png" alt="Debug Agent">
                 </div>
             </div>
-            
-            <!-- Zig-zag feature 2: Left Image, Right Text -->
             <div class="feature-row reverse animate-on-scroll">
                 <div class="feature-text">
                     <h4>錯誤記憶系統 (Error Memory)</h4>
@@ -133,8 +145,6 @@
                     <img src="./settings-behavior.png" alt="Error Memory">
                 </div>
             </div>
-            
-            <!-- Zig-zag feature 3: Left Text, Right Image -->
             <div class="feature-row animate-on-scroll">
                 <div class="feature-text">
                     <h4>賽程日曆與備賽計畫</h4>
@@ -142,6 +152,26 @@
                 </div>
                 <div class="feature-image">
                     <img src="./calendar.png" alt="Calendar and Training Plan">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="performance-section">
+        <div class="container animate-on-scroll">
+            <h3 class="section-title">硬核技術指標</h3>
+            <div class="perf-grid">
+                <div class="perf-card">
+                    <h4>極致輕量</h4>
+                    <p>基於 Tauri v2 架構，安裝檔僅約 10MB，啟動速度極快且資源佔用極低。</p>
+                </div>
+                <div class="perf-card">
+                    <h4>超低延遲</h4>
+                    <p>整合 Groq Llama 3 70B API，推理速度高達 800 tokens/s，即時回應不中斷。</p>
+                </div>
+                <div class="perf-card">
+                    <h4>零成本負擔</h4>
+                    <p>自訂 API Key 串接，達到幾乎免費的 FinOps 級別開發體驗。</p>
                 </div>
             </div>
         </div>
@@ -196,21 +226,22 @@
         </div>
     </section>
 
-    <section class="cta-section">
+    <section class="faq-section">
         <div class="container animate-on-scroll">
-            <h3 class="section-title">準備好讓 AI 成為你的訓練夥伴了嗎？</h3>
-            <div class="download-container">
-                <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-download download-link" target="_blank">
-                    <div class="btn-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24" fill="currentColor">
-                            <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
-                        </svg>
-                    </div>
-                    <div class="btn-text-group">
-                        <span class="btn-main-text">Download for macOS</span>
-                        <span class="btn-sub-text">macOS Apple Silicon (.dmg)</span>
-                    </div>
-                </a>
+            <h3 class="section-title">常見問題</h3>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">Q: 和 GitHub Copilot 有何不同？</div>
+                    <div class="faq-answer">A: Copilot 直接生成程式碼，而 Aceey 採用蘇格拉底式提問，強迫你思考邏輯漏洞，真正提升競程實力。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q: 支援哪些程式語言？</div>
+                    <div class="faq-answer">A: 專為競技程式設計，目前深度優化並支援 C++ (內建 g++ 整合)。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q: 需要付費訂閱嗎？</div>
+                    <div class="faq-answer">A: 軟體本身完全免費開源，使用者只需填入免費取得的 Groq API Key 即可享有頂級 AI 輔助。</div>
+                </div>
             </div>
         </div>
     </section>
