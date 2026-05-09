@@ -1,7 +1,7 @@
 {
   "productName": "Aceey",
-  "version": "0.1.0",
-  "identifier": "com.aceey.dev",
+  "version": "1.0.0",
+  "identifier": "com.rayhuang.aceey",
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
@@ -24,6 +24,8 @@
     }
   },
   "bundle": {
+    "active": true,
+    "targets": "all",
     "icon": []
   }
 }
