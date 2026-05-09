@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aceey - 競技程式選手的 AI 訓練夥伴</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for UI and Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <h1>Aceey</h1>
+            <h2>競技程式選手的 AI 訓練夥伴</h2>
+            <p class="subtitle">市場上有大量給開發者用的 AI IDE，也有大量給刷題者用的 OJ 平台。但沒有人把兩者結合。</p>
+            <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-primary" target="_blank">下載 Aceey</a>
+        </div>
+    </header>
+
+    <section class="demo-section">
+        <div class="container">
+            <h3>體驗蘇格拉底式引導</h3>
+            <p>選擇一個常見錯誤，親自體驗 Aceey 如何引導你找出問題，而不是直接給你答案。</p>
+            
+            <div class="scenario-buttons">
+                <button class="btn scenario-btn" data-scenario="w2">沒處理 w=2</button>
+                <button class="btn scenario-btn" data-scenario="overflow">Integer Overflow</button>
+                <button class="btn scenario-btn" data-scenario="missing-input">少讀一組輸入</button>
+            </div>
+
+            <div class="ide-mockup">
+                <div class="ide-left">
+                    <div class="panel-header">Problem: 4A - Watermelon</div>
+                    <div class="problem-content">
+                        <p>One hot summer day Pete and his friend Billy decided to buy a watermelon. They chose the biggest and the ripest one, in their opinion. After that the watermelon was weighed, and the scales showed w kilos.</p>
+                        <p>They rushed home, dying of thirst, and decided to divide the berry, however they faced a hard problem.</p>
+                        <p>Pete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos, at the same time it is not obligatory that the parts are equal.</p>
+                        <p><strong>Input:</strong> The first (and the only) input line contains integer number w (1 ≤ w ≤ 100).</p>
+                        <p><strong>Output:</strong> Print YES, if the boys can divide the watermelon into two parts, each of them weighing even number of kilos; and NO in the opposite case.</p>
+                    </div>
+                </div>
+                <div class="ide-right">
+                    <div class="editor-header">
+                        <div class="tabs">
+                            <span class="tab active">main.cpp</span>
+                        </div>
+                        <button class="btn btn-run" id="run-btn">Run</button>
+                    </div>
+                    <div class="editor-content" id="editor">
+                        <div class="line-numbers" id="line-numbers">1</div>
+                        <div class="code-area" id="code-area"></div>
+                    </div>
+                    
+                    <!-- AI Bubble Overlay -->
+                    <div class="ai-bubble hidden" id="ai-bubble">
+                        <div class="ai-header">🤖 Aceey Agent</div>
+                        <div class="ai-content" id="ai-text"></div>
+                    </div>
+
+                    <div class="terminal" id="terminal">
+                        <div class="terminal-header">Terminal</div>
+                        <div class="terminal-content" id="terminal-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section">
+        <div class="container">
+            <h3>核心功能</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🧠 蘇格拉底式引導</h4>
+                    <p>不直接給答案，而是透過提問引導你思考，培養真正的解題能力與 Debug 嗅覺。</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📚 錯誤記憶系統 (Error Memory)</h4>
+                    <p>自動追蹤你的歷史弱點與常犯錯誤，針對性地加強訓練，避免重蹈覆轍。</p>
+                </div>
+                <div class="feature-card">
+                    <h4>💰 Token 成本監控 (FinOps)</h4>
+                    <p>精打細算每一次 API 呼叫，強調每次偵錯成本趨近於 $0，安心無負擔。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="comparison-section">
+        <div class="container">
+            <h3>競品比較</h3>
+            <div class="table-responsive">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>功能</th>
+                            <th class="highlight-col">Aceey</th>
+                            <th>CP Editor</th>
+                            <th>LeetCode</th>
+                            <th>Cursor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>目標客群</td>
+                            <td class="highlight-col">競技程式選手</td>
+                            <td>競技程式選手</td>
+                            <td>面試刷題者</td>
+                            <td>軟體開發者</td>
+                        </tr>
+                        <tr>
+                            <td>AI 蘇格拉底引導</td>
+                            <td class="highlight-col">✅ 核心功能</td>
+                            <td>❌ 無</td>
+                            <td>❌ 無</td>
+                            <td>❌ 直接給 code</td>
+                        </tr>
+                        <tr>
+                            <td>錯誤記憶系統</td>
+                            <td class="highlight-col">✅ 自動追蹤</td>
+                            <td>❌ 無</td>
+                            <td>❌ 無</td>
+                            <td>❌ 無</td>
+                        </tr>
+                        <tr>
+                            <td>本地編譯與測資</td>
+                            <td class="highlight-col">✅ 支援</td>
+                            <td>✅ 支援</td>
+                            <td>❌ 雲端</td>
+                            <td>⚠️ 需手動配置</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Aceey. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
