@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/rayhuang2006/Aceey/compare/v1.0.2...v1.1.0) (2026-05-09)
+
+
+### Features
+
+* complete massive Vue 3 migration and restore all UI/UX logic ([9acc4b5](https://github.com/rayhuang2006/Aceey/commit/9acc4b5f3d20a3c439e4b21d9df52e289abc4a78))
+
 ## [1.0.2](https://github.com/rayhuang2006/Aceey/compare/v1.0.1...v1.0.2) (2026-05-09)
 
 
