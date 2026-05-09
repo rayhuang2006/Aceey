@@ -139,6 +139,41 @@ a { text-decoration: none; }
     margin: 2rem auto 0;
 }
 
+/* macOS Guide */
+.macos-guide {
+    max-width: 500px;
+    margin: -20px auto 40px;
+    padding: 15px 20px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 10;
+}
+.macos-guide h5 {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 600;
+}
+.macos-guide p {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.macos-guide code {
+    display: block;
+    background-color: #000;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: var(--font-code);
+    color: var(--accent);
+    font-size: 0.8rem;
+    border: 1px solid #222;
+}
+
 /* Demo Section */
 .demo-section { padding: 100px 0; }
 .section-desc { text-align: center; color: var(--text-muted); margin-bottom: 40px; font-size: 1.1rem; max-width: 800px; margin-left: auto; margin-right: auto; }
@@ -539,18 +574,22 @@ a { text-decoration: none; }
 
 /* Bottom CTA */
 .cta-section {
-    padding: 6rem 0;
+    padding: 8rem 0;
     text-align: center;
     background: linear-gradient(180deg, var(--bg-darker) 0%, #111 100%);
 }
 .cta-section .section-title {
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
+}
+.cta-section .macos-guide {
+    margin-top: 40px;
+    margin-bottom: 0;
 }
 
 footer {
     text-align: center;
-    padding: 30px;
-    border-top: 1px solid var(--border);
+    padding: 40px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--text-muted);
 }
 
