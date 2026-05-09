@@ -9,11 +9,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="hero hero-full">
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-left">
+                <a href="./index.html" class="navbar-logo">
+                    <img src="./favicon.png" alt="Aceey Logo" width="24" height="24">
+                    <span>Aceey</span>
+                </a>
+            </div>
+            <ul class="navbar-middle">
+                <li><a href="./index.html#features">Features</a></li>
+                <li><a href="./updates.html">Updates</a></li>
+                <li><a href="./index.html#faq">FAQ</a></li>
+            </ul>
+            <div class="navbar-right">
+                <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <a href="https://github.com/rayhuang2006/Aceey" target="_blank" class="github-link">
+                    <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                </a>
+                <a href="#hero" class="btn btn-navbar">Download</a>
+            </div>
+        </div>
+    </nav>
+    <header class="hero hero-full" id="hero">
         <div class="container animate-on-scroll">
             <h1>Aceey</h1>
-            <h2>競技程式選手的 AI 訓練夥伴</h2>
-            <p class="subtitle">市場上有大量給開發者用的 AI IDE，也有大量給刷題者用的 OJ 平台。但沒有人把兩者結合。</p>
+            <h2>為競程而生，由 AI 驅動。首款專為競技程式設計的 AI-First 開發環境。</h2>
+            <p class="subtitle">跨越開發工具與練習平台的邊界，Aceey 是你的 AI 專屬導師。</p>
             <div class="download-container">
                 <a href="https://github.com/rayhuang2006/Aceey/releases/latest" class="btn btn-download download-link" target="_blank">
                     <div class="btn-icon">
@@ -27,13 +61,20 @@
                     </div>
                 </a>
             </div>
+            <details class="macos-warning-collapse">
+                <summary>macOS 安裝顯示「已損毀」無法開啟？</summary>
+                <div class="collapse-content">
+                    <p>由於 Aceey 是未簽署的開源程式，請在終端機執行以下指令解除隔離：</p>
+                    <code>xattr -cr /Applications/Aceey.app</code>
+                </div>
+            </details>
             <div class="hero-image-wrapper">
                 <img src="./ide.png" alt="Aceey IDE" class="hero-screenshot">
             </div>
         </div>
     </header>
 
-    <section class="demo-section">
+    <section class="demo-section" id="features">
         <div class="container animate-on-scroll">
             <h3 class="section-title">體驗蘇格拉底式引導</h3>
             <p class="section-desc">Aceey 的核心是蘇格拉底式引導——不給答案，只給提示。選一個常見錯誤，親自體驗 Agent 怎麼幫你找到問題。</p>
@@ -227,7 +268,7 @@
         </div>
     </section>
 
-    <section class="faq-section">
+    <section class="faq-section" id="faq">
         <div class="container animate-on-scroll">
             <h3 class="section-title">常見問題</h3>
             <div class="faq-list">
@@ -262,6 +303,13 @@
                     </div>
                 </a>
             </div>
+            <details class="macos-warning-collapse">
+                <summary>macOS 安裝顯示「已損毀」無法開啟？</summary>
+                <div class="collapse-content">
+                    <p>由於 Aceey 是未簽署的開源程式，請在終端機執行以下指令解除隔離：</p>
+                    <code>xattr -cr /Applications/Aceey.app</code>
+                </div>
+            </details>
         </div>
     </section>
 
