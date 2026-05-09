@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/rayhuang2006/Aceey/compare/v1.0.0...v1.0.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **build:** update bundle identifier to com.rayhuang.aceey to enable dmg bundling ([5d7f590](https://github.com/rayhuang2006/Aceey/commit/5d7f5907bf5a8b890da54d11588235c99a923d63))
+
 ## 1.0.0 (2026-05-09)
 
 

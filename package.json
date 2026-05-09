@@ -1,6 +1,6 @@
 {
   "name": "aceey",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Aceey - Desktop IDE for competitive programming",
   "scripts": {
     "tauri": "tauri"
