@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/rayhuang2006/Aceey/compare/v1.0.1...v1.0.2) (2026-05-09)
+
+
+### Bug Fixes
+
+* **build:** add missing app icons to tauri config. Closes [#6](https://github.com/rayhuang2006/Aceey/issues/6) ([b6a9fa1](https://github.com/rayhuang2006/Aceey/commit/b6a9fa126c0fd5d388c9fbf2a5d860136407392a))
+* **build:** add missing app icons to tauri config. Closes [#6](https://github.com/rayhuang2006/Aceey/issues/6) ([92fb7c0](https://github.com/rayhuang2006/Aceey/commit/92fb7c07221df73bc7a2ea2f8c8dc58fd9ed21ed))
+
 ## [1.0.1](https://github.com/rayhuang2006/Aceey/compare/v1.0.0...v1.0.1) (2026-05-09)
 
 
