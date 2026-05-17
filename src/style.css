@@ -486,10 +486,15 @@ button#run-btn .icon {
 }
 
 /* Details Panel & AI Card */
-#calendar-details-panel {
-  margin-top: 24px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 20px;
+.calendar-popover {
+  position: fixed; /* 使用 fixed 避免受父元素 overflow 影響 */
+  width: 320px;
+  background: var(--bg-panel, #252526);
+  border: 1px solid var(--border-color, #454545);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  padding: 16px;
+  z-index: 9999;
 }
 
 #details-date-title {

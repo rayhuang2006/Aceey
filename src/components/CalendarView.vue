@@ -12,17 +12,17 @@
     </div>
 
     <!-- Agent Notification Bar -->
-    <div id="agent-notification-bar" v-if="notificationText && !isNotificationDismissed" @click="handleNotificationClick" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+    <div id="agent-notification-bar" v-if="notificationText && !isNotificationDismissed" @click="handleNotificationClick" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <div class="notification-content">
         <span class="info-icon">i</span> <span>{{ notificationText }}</span>
       </div>
       <span class="close-btn" @click.stop="isNotificationDismissed = true" style="font-size: 16px; padding: 0 8px;">×</span>
     </div>
 
-    <div id="calendar-content">
-      <div v-if="loading" id="calendar-loading" style="display: block;">載入比賽中...</div>
-      <div v-if="errorMsg" id="calendar-error" style="display: block;">{{ errorMsg }}</div>
+    <div v-if="loading" id="calendar-loading" style="display: block; margin-bottom: 10px;">載入比賽中...</div>
+    <div v-if="errorMsg" id="calendar-error" style="display: block; margin-bottom: 10px;">{{ errorMsg }}</div>
 
+    <div id="calendar-content">
       <div id="calendar-grid-container">
         <div class="calendar-grid-header">
           <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
@@ -32,7 +32,7 @@
           <div v-for="day in totalDays" :key="day"
                class="calendar-cell"
                :class="{ selected: selectedDay === day }"
-               @click="selectedDay = day">
+               @click="selectDay(day, $event)">
             <div class="cell-date" :class="{ today: isToday(day) }">{{ day }}</div>
             <div class="cell-bars-compact">
               <div v-for="c in getContestsForDay(day).slice(0, 3)" :key="c.name"
@@ -48,31 +48,34 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Details Panel for Selected Date -->
-      <div v-if="selectedDay" id="calendar-details-panel">
-        <h3><span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇：{{ currentMonth + 1 }}月{{ selectedDay }}日</h3>
-        <div id="details-contest-list">
-          <div v-if="selectedDayContests.length === 0 && selectedDayTrainingTasks.length === 0" style="color: #888; font-size: 13px;">這天沒有比賽</div>
-          
-          <div v-if="selectedDayTrainingTasks.length > 0" class="contest-item border-platform-training" style="flex-direction: column; align-items: flex-start;">
-            <div class="contest-title" style="margin-bottom: 8px;">練習計畫</div>
-            <label v-for="(task, idx) in selectedDayTrainingTasks" :key="idx" class="todo-item" style="margin-left: 4px; display: block; margin-bottom: 4px;">
-              <input type="checkbox" v-model="task.completed">
-              <span class="todo-text">[{{ task.topic }}] {{ task.problem }} ({{ task.source }}) - {{ task.difficulty }}</span>
-            </label>
-          </div>
+    <!-- Popover -->
+    <div v-if="selectedDay" class="calendar-popover" :style="popoverStyle">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+        <h3 style="margin: 0; font-size: 16px; color: #fff;">{{ currentMonth + 1 }}月{{ selectedDay }}日</h3>
+        <button @click.stop="selectedDay = null" style="background:none; border:none; color:#888; cursor:pointer; font-size:20px; line-height: 1;">×</button>
+      </div>
 
-          <div v-for="c in selectedDayContests" :key="c.name"
-               class="contest-item" :class="'border-' + getPlatformClass(c.platform)">
-            <div class="contest-main">
-              <div class="contest-title">{{ c.name }}</div>
-              <div class="contest-time">{{ formatTime(c) }}</div>
-            </div>
-            <div class="contest-actions">
-              <button v-if="isFuture(c)" class="want-to-compete-btn" @click="openRatingModal(c)">想打這場</button>
-              <button class="open-link-btn" @click="openExternal(c.url)">開啟</button>
-            </div>
+      <!-- Training Tasks Section -->
+      <div v-if="selectedDayTrainingTasks.length > 0" style="margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+        <div style="font-weight: bold; color: var(--accent-purple, #b388ff); font-size: 14px; margin-bottom: 8px;">◆ 練習任務</div>
+        <label v-for="(task, idx) in selectedDayTrainingTasks" :key="idx" class="todo-item" style="margin-left: 4px; display: flex; align-items: flex-start; margin-bottom: 6px; cursor: pointer;">
+          <input type="checkbox" v-model="task.completed" style="margin-top: 3px; margin-right: 6px;">
+          <span class="todo-text" style="font-size: 13px; line-height: 1.4;">[{{ task.topic }}] {{ task.problem }} ({{ task.source }}) - {{ task.difficulty }}</span>
+        </label>
+      </div>
+
+      <!-- Contests Section -->
+      <div v-if="selectedDayContests.length === 0 && selectedDayTrainingTasks.length === 0" style="color: #888; text-align: center; padding: 10px 0;">這天沒有比賽或任務</div>
+      <div v-if="selectedDayContests.length > 0">
+        <div style="font-weight: bold; color: #fff; font-size: 14px; margin-bottom: 8px;">◆ 競賽時程</div>
+        <div v-for="c in selectedDayContests" :key="c.name" style="padding: 12px 0; border-bottom: 1px solid #333;">
+          <div class="contest-title" style="font-weight: 500; margin-bottom: 4px;">{{ c.name }}</div>
+          <div class="contest-time" style="color: #aaa; font-size: 13px; margin-bottom: 8px;">{{ formatTime(c) }}</div>
+          <div style="display: flex; gap: 8px;">
+            <button v-if="isFuture(c)" class="want-to-compete-btn" @click="openRatingModal(c)">想打這場</button>
+            <button class="open-link-btn" @click="openExternal(c.url)">開啟</button>
           </div>
         </div>
       </div>
@@ -81,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { appSettings, openExternal } from '../store';
 import { calendarState } from './calendarState.js';
@@ -94,6 +97,7 @@ const isNotificationDismissed = ref(false);
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth());
 const selectedDay = ref(null);
+const popoverStyle = ref({});
 
 const contestsCache = ref([]);
 const trainingPlans = ref([]);
@@ -259,7 +263,35 @@ function handleNotificationClick() {
   }
 }
 
+function selectDay(day, event) {
+  selectedDay.value = day;
+  const cell = event.currentTarget;
+  const rect = cell.getBoundingClientRect();
+
+  // 預設放在格子右邊，如果右邊空間不夠 (超過視窗寬度)，就改放左邊
+  let leftPos = rect.right + 8;
+  if (leftPos + 320 > window.innerWidth) {
+    leftPos = rect.left - 320 - 8;
+  }
+
+  popoverStyle.value = {
+    top: `${rect.top}px`,
+    left: `${leftPos}px`
+  };
+}
+
+function handleClickOutside(e) {
+  if (!e.target.closest('.calendar-popover') && !e.target.closest('.calendar-cell')) {
+    selectedDay.value = null;
+  }
+}
+
 onMounted(() => {
   if (contestsCache.value.length === 0) loadContests();
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
