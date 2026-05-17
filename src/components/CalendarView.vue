@@ -232,6 +232,7 @@ async function loadContests() {
 }
 
 function openRatingModal(c) {
+  selectedDay.value = null;
   calendarState.openRatingModal(c, trainingPlans.value, appSettings, () => {}, passiveAgentCheck);
 }
 
@@ -268,16 +269,28 @@ function selectDay(day, event) {
   const cell = event.currentTarget;
   const rect = cell.getBoundingClientRect();
 
-  // 預設放在格子右邊，如果右邊空間不夠 (超過視窗寬度)，就改放左邊
+  // 1. 水平邊界檢測
   let leftPos = rect.right + 8;
   if (leftPos + 320 > window.innerWidth) {
-    leftPos = rect.left - 320 - 8;
+    leftPos = rect.left - 320 - 8; // 空間不夠放左邊
   }
 
-  popoverStyle.value = {
-    top: `${rect.top}px`,
-    left: `${leftPos}px`
+  const style = {
+    left: `${leftPos}px`,
   };
+
+  // 2. 垂直邊界檢測與動態高度
+  if (rect.top > window.innerHeight / 2) {
+    // 點擊在下半部：對齊格子的底部，卡片往上展開
+    style.bottom = `${window.innerHeight - rect.bottom}px`;
+    style.maxHeight = `${rect.bottom - 60}px`; // 預留頂部安全距離
+  } else {
+    // 點擊在上半部：對齊格子的頂部，卡片往下展開
+    style.top = `${rect.top}px`;
+    style.maxHeight = `${window.innerHeight - rect.top - 60}px`; // 預留底部安全距離
+  }
+
+  popoverStyle.value = style;
 }
 
 function handleClickOutside(e) {
