@@ -1,6 +1,7 @@
 <template>
   <div id="editor-panel">
     <div class="panel-header">Solution.cpp</div>
+    <div v-if="isAnalyzing" class="analyzing-banner">🧠 Agent is analyzing the code...</div>
     <div id="monaco-container" ref="monacoContainer"></div>
   </div>
 </template>
@@ -41,6 +42,8 @@ let debugIssueQueue = [];
 let currentDebugIndex = 0;
 let isGeneralHintExpanded = false;
 let currentGeneralIssue = null;
+
+const isAnalyzing = ref(false);
 
 onMounted(() => {
   if (!monacoContainer.value) return;
@@ -158,6 +161,7 @@ async function agentWorkflowPipeline(verdict, failedCase) {
   };
 
   try {
+    isAnalyzing.value = true;
     const rawResponse = await invoke('analyze_error', {
       sourceCode: context.sourceCode,
       problemDescription: context.problemDescription,
@@ -173,6 +177,8 @@ async function agentWorkflowPipeline(verdict, failedCase) {
     applyDebugDecorationsWithParsed(allIssues);
   } catch (e) {
     console.error("Debug Agent failed:", e);
+  } finally {
+    isAnalyzing.value = false;
   }
 
   await updateTokenMonitorUI();
@@ -320,3 +326,25 @@ function clearEditor() {
 
 defineExpose({ runCode, clearEditor });
 </script>
+
+<style scoped>
+.analyzing-banner {
+  background-color: #d97706; /* orange */
+  color: white;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  animation: pulse 1.5s infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+</style>
