@@ -1,7 +1,6 @@
 <template>
   <div id="editor-panel">
     <div class="panel-header">Solution.cpp</div>
-    <div v-if="isAnalyzing" class="analyzing-banner">🧠 Agent is analyzing the code...</div>
     <div id="monaco-container" ref="monacoContainer"></div>
   </div>
 </template>
@@ -11,7 +10,7 @@ import { ref, onMounted, onUnmounted, defineExpose } from 'vue';
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { invoke } from '@tauri-apps/api/core';
-import { testCases, activeTcId, appSettings, updateTokenMonitorUI, updateStoreValue } from '../store';
+import { testCases, activeTcId, appSettings, updateTokenMonitorUI, updateStoreValue, isAgentAnalyzing } from '../store';
 
 // Must be set before any monaco.editor.create() call
 self.MonacoEnvironment = {
@@ -43,7 +42,7 @@ let currentDebugIndex = 0;
 let isGeneralHintExpanded = false;
 let currentGeneralIssue = null;
 
-const isAnalyzing = ref(false);
+
 
 onMounted(() => {
   if (!monacoContainer.value) return;
@@ -161,7 +160,7 @@ async function agentWorkflowPipeline(verdict, failedCase) {
   };
 
   try {
-    isAnalyzing.value = true;
+    isAgentAnalyzing.value = true;
     const rawResponse = await invoke('analyze_error', {
       sourceCode: context.sourceCode,
       problemDescription: context.problemDescription,
@@ -178,7 +177,7 @@ async function agentWorkflowPipeline(verdict, failedCase) {
   } catch (e) {
     console.error("Debug Agent failed:", e);
   } finally {
-    isAnalyzing.value = false;
+    isAgentAnalyzing.value = false;
   }
 
   await updateTokenMonitorUI();

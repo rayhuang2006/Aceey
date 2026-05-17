@@ -31,14 +31,20 @@
 
     <!-- Main IDE Content (old_index.html lines 42-93) -->
     <Transition name="fade" mode="out-in">
-      <div id="main-content" v-if="activeView === 'ide'">
-        <div id="top-panels">
+      <div id="main-content" class="ide-layout" v-if="activeView === 'ide'">
+        <div class="problem-panel">
           <Sidebar />
-          <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
-          <EditorPane ref="editorPaneRef" />
         </div>
-        <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
-        <TestCasePanel />
+        <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
+        <div class="workspace-panel">
+          <div class="editor-container" :style="{ flex: `0 0 ${editorHeight}%` }">
+            <EditorPane ref="editorPaneRef" />
+          </div>
+          <div class="resizer-y" @mousedown.prevent="startResizeV" :class="{ active: isDraggingY }"></div>
+          <div class="testcase-container" style="flex: 1; min-height: 0;">
+            <TestCasePanel />
+          </div>
+        </div>
       </div>
 
       <!-- Calendar View (old_index.html lines 95-129) -->
@@ -72,6 +78,8 @@ import StatusBar from './components/StatusBar.vue';
 import { activeView, calendarActive, initApp, testCases, activeTcId } from './store';
 
 const editorPaneRef = ref(null);
+const editorHeight = ref(60);
+const isDraggingY = ref(false);
 
 onMounted(async () => {
   await initApp();
@@ -116,40 +124,36 @@ function openSettings() {
   activeView.value = 'settings';
 }
 
-// --- Resizer Logic (from old main.js lines 850-893) ---
+// --- Resizer Logic ---
 let isResizingH = false;
-let isResizingV = false;
 
 function startResizeH() { isResizingH = true; document.body.style.cursor = 'col-resize'; }
-function startResizeV() { isResizingV = true; document.body.style.cursor = 'row-resize'; }
+function startResizeV() { isDraggingY.value = true; document.body.style.cursor = 'row-resize'; }
 
 function onMouseMove(e) {
   if (isResizingH) {
     const pct = (e.clientX / window.innerWidth) * 100;
     if (pct > 10 && pct < 90) {
-      const pp = document.getElementById('problem-panel');
-      const ep = document.getElementById('editor-panel');
-      if (pp) pp.style.width = pct + '%';
-      if (ep) ep.style.width = (100 - pct) + '%';
+      const pp = document.querySelector('.problem-panel');
+      if (pp) pp.style.flex = `0 0 ${pct}%`;
     }
   }
-  if (isResizingV) {
-    const mc = document.getElementById('main-content');
-    if (!mc) return;
-    const offset = e.clientY - 40;
-    const pct = (offset / mc.clientHeight) * 100;
-    if (pct > 20 && pct < 80) {
-      const tp = document.getElementById('top-panels');
-      const tcp = document.getElementById('testcase-panel');
-      if (tp) tp.style.height = pct + '%';
-      if (tcp) tcp.style.height = (100 - pct) + '%';
-    }
+  if (isDraggingY.value) {
+    const ws = document.querySelector('.workspace-panel');
+    if (!ws) return;
+    const rect = ws.getBoundingClientRect();
+    let newHeightPercentage = ((e.clientY - rect.top) / ws.clientHeight) * 100;
+    
+    if (newHeightPercentage < 20) newHeightPercentage = 20;
+    if (newHeightPercentage > 80) newHeightPercentage = 80;
+    
+    editorHeight.value = newHeightPercentage;
   }
 }
 
 function onMouseUp() {
   isResizingH = false;
-  isResizingV = false;
+  isDraggingY.value = false;
   document.body.style.cursor = 'default';
 }
 </script>
