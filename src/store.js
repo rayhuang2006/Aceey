@@ -89,6 +89,7 @@ export async function updateStoreValue(key, value) {
 // --- Global UI State ---
 export const activeView = ref('ide'); // 'ide', 'calendar', 'settings'
 export const calendarActive = ref(false);
+export const isAgentAnalyzing = ref(false);
 
 // --- Test Cases State (from old main.js lines 16-19) ---
 export const testCases = reactive([

@@ -4,6 +4,9 @@
       <div class="status-item">Aceey IDE</div>
     </div>
     <div class="status-bar-right">
+      <div v-if="isAgentAnalyzing" class="status-analyzing">
+        <span class="pulse-dot"></span> Analyzing...
+      </div>
       <div id="quota-monitor-trigger" class="status-item">
         [Groq] {{ quotaData.totalTokens }} / {{ appSettings.tokenBudget }} Tokens
         <div id="quota-hover-panel">
@@ -28,7 +31,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { quotaData, appSettings } from '../store';
+import { quotaData, appSettings, isAgentAnalyzing } from '../store';
 
 function formatK(num) {
   return num >= 1000 ? (num / 1000).toFixed(0) + 'k' : num.toString();
