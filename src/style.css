@@ -284,15 +284,15 @@ button#run-btn .icon {
   min-height: 0; /* 關鍵防護：不允許撐破父容器 */
   padding: 12px;
   box-sizing: border-box;
-  overflow: hidden; /* 我們不要它自己滾動，我們要內部元素壓縮 */
+  overflow-y: auto; /* 允許外層滾動，防止內部被過度擠壓 */
 }
 
 .io-columns {
   display: flex;
   gap: 12px;
-  flex: 1; /* 拿走剩下的所有空間 */
-  min-height: 0; /* 關鍵防護：允許被壓縮到極限 */
-  overflow: hidden; /* 不要讓文字框撐爆它 */
+  flex: 1 1 auto;
+  min-height: 120px; /* 關鍵：給予基本的打字/閱讀空間 */
+  flex-shrink: 0;    /* 關鍵：不允許被壓縮到低於 120px */
 }
 
 .io-col {
@@ -312,6 +312,9 @@ button#run-btn .icon {
   flex: 1;
   min-height: 0;
   resize: none;
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: pre;
   box-sizing: border-box;
   background-color: var(--bg-dark);
   color: var(--text-primary);
@@ -339,6 +342,25 @@ button#run-btn .icon {
   border-radius: 0 4px 4px 0;
   max-height: 80px;
   overflow-y: auto;
+}
+
+/* 針對 Webkit 瀏覽器 (Chrome, Safari, Edge, Tauri Webview) 的捲軸美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777; 
 }
 
 #tc-time {
