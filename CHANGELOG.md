@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/rayhuang2006/Aceey/compare/v1.3.0...v1.4.0) (2026-05-17)
+
+
+### Features
+
+* **testcase:** implement initial two-pane layout and summary bar (WIP) ([1e2cdd9](https://github.com/rayhuang2006/Aceey/commit/1e2cdd94f20632c37158a5bce69d36cbcfd40f9e))
+* **workspace:** implement draggable vertical resizer for dynamic panel sizing ([8752c61](https://github.com/rayhuang2006/Aceey/commit/8752c61edd518f6daff3ab91752f5f1f8185efb9))
+
+
+### Bug Fixes
+
+* **testcase:** correct v-if logic and complete flexbox height chain ([7ffa2cc](https://github.com/rayhuang2006/Aceey/commit/7ffa2cc71f93af86cd97b0d59029be57fd09b9e9))
+* **testcase:** implement resilient flexbox scrolling and dark mode scrollbars ([dd80e10](https://github.com/rayhuang2006/Aceey/commit/dd80e10f2323bc346fb1c6d2c46977050cec099c))
+
 ## [1.3.0](https://github.com/rayhuang2006/Aceey/compare/v1.2.0...v1.3.0) (2026-05-17)
 
 
