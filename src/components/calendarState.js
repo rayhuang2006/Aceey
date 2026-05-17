@@ -43,13 +43,15 @@ export const calendarState = reactive({
   async generateTrainingPlan() {
     const contest = this.activeContest;
     if (!contest) return;
+    
     const now = new Date();
-    const diffTime = contest.startDt.getTime() - now.getTime();
+    const startDt = contest.startDt ? new Date(contest.startDt) : new Date(contest.start_time);
+    
+    const diffTime = startDt.getTime() - now.getTime();
     let daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (daysUntil < 1) daysUntil = 1;
 
-    const contestDt = contest.startDt;
-    const contestDateLabel = contestDt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' });
+    const contestDateLabel = startDt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', weekday: 'short' });
     this.planReviewTitle = `備賽計畫：${contest.name}`;
     this.planReviewSubtitle = `比賽日期：${contestDateLabel}   你的程度：${this.lastRatingSelected}`;
 
@@ -60,20 +62,20 @@ export const calendarState = reactive({
         userLevel: this.lastRatingSelected,
         groqApiKey: this._appSettings?.groqApiKey || ""
       });
-      this.parseReviewPlan(response, contest, daysUntil);
+      this.parseReviewPlan(response, startDt, daysUntil);
     } catch (e) {
-      console.error("Agent failed:", e);
-      this.planReviewLoading = false;
+      console.error("生成計畫失敗:", e);
       this.planReviewHtml = '<div style="color: #ff5252;">產生計畫失敗，請檢查 API Key 是否正確。</div>';
       this.planReviewShowConfirm = false;
+    } finally {
+      this.planReviewLoading = false;
     }
   },
 
-  parseReviewPlan(rawResponse, contest, daysUntil) {
+  parseReviewPlan(rawResponse, contestDt, daysUntil) {
     const lines = rawResponse.split('\n');
     let groupedByDay = {};
     let dateMapping = {};
-    const contestDt = contest.startDt;
 
     lines.forEach(line => {
       if (!line.includes('|')) return;
@@ -109,8 +111,7 @@ export const calendarState = reactive({
       });
     });
 
-    this.activePendingPlan = { contestName: contest.name, tasks: flatTasksList };
-    this.planReviewLoading = false;
+    this.activePendingPlan = { contestName: this.activeContest.name, tasks: flatTasksList };
     this.planReviewHtml = reviewHtml;
     this.planReviewShowConfirm = true;
   },

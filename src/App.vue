@@ -30,21 +30,23 @@
     </div>
 
     <!-- Main IDE Content (old_index.html lines 42-93) -->
-    <div id="main-content" v-show="activeView === 'ide'">
-      <div id="top-panels">
-        <Sidebar />
-        <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
-        <EditorPane ref="editorPaneRef" />
+    <Transition name="fade" mode="out-in">
+      <div id="main-content" v-if="activeView === 'ide'">
+        <div id="top-panels">
+          <Sidebar />
+          <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
+          <EditorPane ref="editorPaneRef" />
+        </div>
+        <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
+        <TestCasePanel />
       </div>
-      <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
-      <TestCasePanel />
-    </div>
 
-    <!-- Calendar View (old_index.html lines 95-129) -->
-    <CalendarView v-show="activeView === 'calendar'" />
+      <!-- Calendar View (old_index.html lines 95-129) -->
+      <CalendarView v-else-if="activeView === 'calendar'" />
 
-    <!-- Settings View (old_index.html lines 167-272) -->
-    <SettingsView v-show="activeView === 'settings'" @close="activeView = 'ide'" />
+      <!-- Settings View (old_index.html lines 167-272) -->
+      <SettingsView v-else-if="activeView === 'settings'" @close="activeView = 'ide'" />
+    </Transition>
 
     <!-- Rating Modal -->
     <RatingModal />
@@ -159,5 +161,12 @@ function onMouseUp() {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+}
+
+.fade-enter-active, .fade-leave-active { 
+  transition: opacity 0.15s ease; 
+}
+.fade-enter-from, .fade-leave-to { 
+  opacity: 0; 
 }
 </style>

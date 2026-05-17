@@ -94,6 +94,8 @@
 
       </div>
     </div>
+    
+    <div v-if="showToast" class="toast-notification">Agent memory has been cleared!</div>
   </div>
 </template>
 
@@ -113,6 +115,7 @@ const sections = [
 const activeSection = ref('settings-credentials');
 const currentSectionLabel = computed(() => sections.find(s => s.id === activeSection.value)?.label || '');
 const memoryRecords = ref([]);
+const showToast = ref(false);
 
 function switchSection(id) { activeSection.value = id; }
 
@@ -143,7 +146,8 @@ async function clearMemory() {
   try {
     await invoke('clear_agent_memory');
     memoryRecords.value = [];
-    alert("Agent memory has been cleared!");
+    showToast.value = true;
+    setTimeout(() => { showToast.value = false; }, 2500);
   } catch (e) {
     console.error("Failed to clear memory:", e);
   }
@@ -151,4 +155,26 @@ async function clearMemory() {
 
 onMounted(() => { loadMemory(); });
 </script>
+
+<style scoped>
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #1f2937;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+  border: 1px solid #374151;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+</style>
 

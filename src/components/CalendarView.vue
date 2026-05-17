@@ -2,9 +2,9 @@
   <div id="calendar-view">
     <div class="calendar-header">
       <div class="calendar-nav">
-        <button id="calendar-prev-btn" @click="prevMonth">&lt; 上月</button>
-        <h2>{{ monthTitle }}</h2>
-        <button id="calendar-next-btn" @click="nextMonth">下月 &gt;</button>
+        <button id="calendar-prev-btn" @click="prevMonth">‹ 上月</button>
+        <h2>{{ currentYear }}年 {{ currentMonth + 1 }}月</h2>
+        <button id="calendar-next-btn" @click="nextMonth">下月 ›</button>
       </div>
       <button id="calendar-refresh-btn" @click="loadContests">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> 重新整理
@@ -12,50 +12,98 @@
     </div>
 
     <!-- Agent Notification Bar -->
-    <div id="agent-notification-bar" v-if="notificationText" @click="handleNotificationClick" style="cursor: pointer;">
+    <div id="agent-notification-bar" v-if="notificationText && !isNotificationDismissed" @click="handleNotificationClick" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <div class="notification-content">
         <span class="info-icon">i</span> <span>{{ notificationText }}</span>
       </div>
+      <span class="close-btn" @click.stop="isNotificationDismissed = true" style="font-size: 16px; padding: 0 8px;">×</span>
     </div>
 
-    <div id="calendar-content">
-      <div v-if="loading" id="calendar-loading" style="display: block;">載入比賽中...</div>
-      <div v-if="errorMsg" id="calendar-error" style="display: block;">{{ errorMsg }}</div>
+    <div v-if="loading" id="calendar-loading" style="display: block; margin-bottom: 10px;">載入比賽中...</div>
+    <div v-if="errorMsg" id="calendar-error" style="display: block; margin-bottom: 10px;">{{ errorMsg }}</div>
 
+    <div id="calendar-content">
       <div id="calendar-grid-container">
         <div class="calendar-grid-header">
           <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
         </div>
-        <div id="calendar-grid-body" class="calendar-grid" ref="gridBody"></div>
+        <div class="calendar-grid">
+          <div v-for="i in startOffset" :key="'empty-'+i" class="calendar-cell empty-cell"></div>
+          <div v-for="day in totalDays" :key="day"
+               class="calendar-cell"
+               :class="{ selected: selectedDay === day }"
+               @click="selectDay(day, $event)">
+            <div class="cell-date" :class="{ today: isToday(day) }">{{ day }}</div>
+            <div class="cell-bars-compact">
+              <div v-for="c in getContestsForDay(day).slice(0, 3)" :key="c.name"
+                   class="platform-bar" :class="getPlatformClass(c.platform)">
+                {{ getPlatformAbbr(c.platform) }}
+              </div>
+              <div class="more-bars" v-if="getContestsForDay(day).length > 3">+{{ getContestsForDay(day).length - 3 }} more</div>
+              
+              <div class="cell-dots-container" v-if="getTrainingTasksForDay(day).length > 0">
+                <div class="training-dot" v-for="(t, idx) in getTrainingTasksForDay(day)" :key="idx"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popover -->
+    <div v-if="selectedDay" class="calendar-popover" :style="popoverStyle">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+        <h3 style="margin: 0; font-size: 16px; color: #fff;">{{ currentMonth + 1 }}月{{ selectedDay }}日</h3>
+        <button @click.stop="selectedDay = null" style="background:none; border:none; color:#888; cursor:pointer; font-size:20px; line-height: 1;">×</button>
       </div>
 
-      <!-- Details Panel for Selected Date -->
-      <div id="calendar-details-panel" v-if="selectedDate">
-        <h3><span class="accent-bar" style="display:inline-block;width:4px;height:16px;background:#4CAF50;margin-right:8px;vertical-align:middle;border-radius:2px;"></span>已選擇： {{ selectedDate.label }}</h3>
-        <div id="details-contest-list" ref="detailsList"></div>
+      <!-- Training Tasks Section -->
+      <div v-if="selectedDayTrainingTasks.length > 0" style="margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+        <div style="font-weight: bold; color: var(--accent-purple, #b388ff); font-size: 14px; margin-bottom: 8px;">◆ 練習任務</div>
+        <label v-for="(task, idx) in selectedDayTrainingTasks" :key="idx" class="todo-item" style="margin-left: 4px; display: flex; align-items: flex-start; margin-bottom: 6px; cursor: pointer;">
+          <input type="checkbox" v-model="task.completed" style="margin-top: 3px; margin-right: 6px;">
+          <span class="todo-text" style="font-size: 13px; line-height: 1.4;">[{{ task.topic }}] {{ task.problem }} ({{ task.source }}) - {{ task.difficulty }}</span>
+        </label>
+      </div>
+
+      <!-- Contests Section -->
+      <div v-if="selectedDayContests.length === 0 && selectedDayTrainingTasks.length === 0" style="color: #888; text-align: center; padding: 10px 0;">這天沒有比賽或任務</div>
+      <div v-if="selectedDayContests.length > 0">
+        <div style="font-weight: bold; color: #fff; font-size: 14px; margin-bottom: 8px;">◆ 競賽時程</div>
+        <div v-for="c in selectedDayContests" :key="c.name" style="padding: 12px 0; border-bottom: 1px solid #333;">
+          <div class="contest-title" style="font-weight: 500; margin-bottom: 4px;">{{ c.name }}</div>
+          <div class="contest-time" style="color: #aaa; font-size: 13px; margin-bottom: 8px;">{{ formatTime(c) }}</div>
+          <div style="display: flex; gap: 8px;">
+            <button v-if="isFuture(c)" class="want-to-compete-btn" @click="openRatingModal(c)">想打這場</button>
+            <button class="open-link-btn" @click="openExternal(c.url)">開啟</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { appSettings, openExternal } from '../store';
 import { calendarState } from './calendarState.js';
 
-const gridBody = ref(null);
-const detailsList = ref(null);
 const loading = ref(false);
 const errorMsg = ref('');
-const monthTitle = ref('');
-const selectedDate = ref(null);
 const notificationText = ref('');
+const isNotificationDismissed = ref(false);
 
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
-let contestsCache = null;
-let trainingPlans = [];
+const currentYear = ref(new Date().getFullYear());
+const currentMonth = ref(new Date().getMonth());
+const selectedDay = ref(null);
+const popoverStyle = ref({});
+
+const contestsCache = ref([]);
+const trainingPlans = ref([]);
+
+const startOffset = computed(() => new Date(currentYear.value, currentMonth.value, 1).getDay());
+const totalDays = computed(() => new Date(currentYear.value, currentMonth.value + 1, 0).getDate());
 
 function parseDate(s) {
   if (!s) return new Date();
@@ -65,6 +113,44 @@ function parseDate(s) {
   return new Date(s.includes('T') ? (s.endsWith('Z') ? s : s + 'Z') : s);
 }
 
+const isToday = (day) => {
+  const now = new Date();
+  return now.getFullYear() === currentYear.value && now.getMonth() === currentMonth.value && now.getDate() === day;
+};
+
+const getContestsForDay = (day) => {
+  if (!contestsCache.value) return [];
+  return contestsCache.value.filter(c => {
+    const dt = parseDate(c.start_time);
+    return dt.getDate() === day && dt.getMonth() === currentMonth.value && dt.getFullYear() === currentYear.value;
+  });
+};
+
+const getTrainingTasksForDay = (day) => {
+  if (!trainingPlans.value) return [];
+  const localIsoDate = new Date(currentYear.value, currentMonth.value, day).toLocaleDateString('en-CA');
+  const tasks = [];
+  trainingPlans.value.forEach(plan => {
+    plan.tasks.forEach(task => {
+      if (task.date === localIsoDate) tasks.push(task);
+    });
+  });
+  return tasks;
+};
+
+const selectedDayContests = computed(() => {
+  if (!selectedDay.value) return [];
+  return (contestsCache.value || []).filter(c => {
+    const dt = parseDate(c.start_time);
+    return dt.getDate() === selectedDay.value && dt.getMonth() === currentMonth.value && dt.getFullYear() === currentYear.value;
+  });
+});
+
+const selectedDayTrainingTasks = computed(() => {
+  if (!selectedDay.value) return [];
+  return getTrainingTasksForDay(selectedDay.value);
+});
+
 function formatDuration(minutes) {
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
@@ -72,7 +158,22 @@ function formatDuration(minutes) {
   return m > 0 ? `${h}h${m}m` : `${h}h`;
 }
 
+function formatTime(c) {
+  const startDt = parseDate(c.start_time);
+  const startStr = startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const endDt = parseDate(c.end_time);
+  const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
+}
+
+function isFuture(c) {
+  const dt = parseDate(c.start_time);
+  return dt > new Date();
+}
+
 function getPlatformClass(p) {
+  if (!p) return '';
+  p = p.toLowerCase();
   if (p.includes('codeforces')) return 'platform-codeforces';
   if (p.includes('leetcode')) return 'platform-leetcode';
   if (p.includes('atcoder')) return 'platform-atcoder';
@@ -81,7 +182,8 @@ function getPlatformClass(p) {
 }
 
 function getPlatformAbbr(platform) {
-  const p = (platform || '').toLowerCase();
+  if (!platform) return '';
+  const p = platform.toLowerCase();
   if (p.includes('codeforces')) return 'CF';
   if (p.includes('atcoder')) return 'AT';
   if (p.includes('leetcode')) return 'LC';
@@ -90,42 +192,37 @@ function getPlatformAbbr(platform) {
 }
 
 function prevMonth() {
-  currentMonth--;
-  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  renderCalendarGrid();
+  currentMonth.value--;
+  if (currentMonth.value < 0) { currentMonth.value = 11; currentYear.value--; }
+  selectedDay.value = null;
 }
 
 function nextMonth() {
-  currentMonth++;
-  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  renderCalendarGrid();
+  currentMonth.value++;
+  if (currentMonth.value > 11) { currentMonth.value = 0; currentYear.value++; }
+  selectedDay.value = null;
 }
 
 async function loadContests() {
   loading.value = true;
   errorMsg.value = '';
-  if (gridBody.value) gridBody.value.innerHTML = '';
   try {
     const rawResult = await invoke('fetch_contests', {
       clistUsername: appSettings.clistUsername || "",
       clistApiKey: appSettings.clistApiKey || ""
     });
 
-    // Guard: Rust already returns a parsed Vec, but if it somehow returns null/empty, bail early
     if (rawResult === null || rawResult === undefined) {
       throw new Error('API 回傳為空，請確認 Clist API Key 是否設定正確。');
     }
 
-    // If the backend returned a raw JSON string instead of a parsed array, parse it
     const contests = Array.isArray(rawResult) ? rawResult : JSON.parse(rawResult);
-    contestsCache = contests;
+    contestsCache.value = contests;
     passiveAgentCheck();
     loading.value = false;
-    selectedDate.value = null;
-    renderCalendarGrid();
+    selectedDay.value = null;
   } catch (e) {
     console.error("fetch_contests failed:", e);
-    // Show a friendly, non-alarming message instead of the raw error
     const isKeyMissing = !appSettings.clistUsername || !appSettings.clistApiKey;
     errorMsg.value = isKeyMissing
       ? '尚未設定 Clist API Key。請前往 ⚙ 設定 → Credentials 填入帳號與 API Key。'
@@ -134,182 +231,80 @@ async function loadContests() {
   }
 }
 
-function renderCalendarGrid() {
-  const list = contestsCache || [];
-  const gb = gridBody.value;
-  if (!gb) return;
-  gb.innerHTML = '';
-
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const lastDay = new Date(currentYear, currentMonth + 1, 0);
-  monthTitle.value = firstDay.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-
-  const startOffset = firstDay.getDay();
-  const totalDays = lastDay.getDate();
-
-  for (let i = 0; i < startOffset; i++) {
-    const emptyCell = document.createElement('div');
-    emptyCell.className = 'calendar-cell empty-cell';
-    gb.appendChild(emptyCell);
-  }
-
-  const monthContests = {};
-  list.forEach(c => {
-    const dt = parseDate(c.start_time);
-    if (dt.getFullYear() === currentYear && dt.getMonth() === currentMonth) {
-      const day = dt.getDate();
-      if (!monthContests[day]) monthContests[day] = [];
-      monthContests[day].push({ ...c, startDt: dt });
-    }
-  });
-
-  const now = new Date();
-  const isCurrentMonth = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
-  const todayDate = now.getDate();
-
-  for (let day = 1; day <= totalDays; day++) {
-    const cell = document.createElement('div');
-    cell.className = 'calendar-cell';
-    let dayClass = 'cell-date';
-    if (isCurrentMonth && day === todayDate) dayClass += ' today';
-
-    const dtStr = new Date(currentYear, currentMonth, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' });
-    const localIsoDate = new Date(currentYear, currentMonth, day).toLocaleDateString('en-CA');
-    const dayContests = monthContests[day] || [];
-
-    const dayTrainingTasks = [];
-    trainingPlans.forEach(plan => {
-      plan.tasks.forEach(task => {
-        if (task.date === localIsoDate) dayTrainingTasks.push(task);
-      });
-    });
-
-    let contestsHtml = '';
-    if (dayContests.length > 0 || dayTrainingTasks.length > 0) {
-      let barsHtml = '';
-      let dotsHtml = '';
-      const maxBars = 3;
-      let rendered = 0;
-      for (let i = 0; i < dayContests.length && rendered < maxBars; i++) {
-        barsHtml += `<div class="platform-bar ${getPlatformClass(dayContests[i].platform)}">${getPlatformAbbr(dayContests[i].platform)}</div>`;
-        rendered++;
-      }
-      if (dayContests.length > maxBars) barsHtml += `<div class="more-bars">+${dayContests.length - maxBars} more</div>`;
-      if (dayTrainingTasks.length > 0) {
-        dotsHtml = '<div class="cell-dots-container">';
-        for (let i = 0; i < dayTrainingTasks.length; i++) dotsHtml += `<div class="training-dot"></div>`;
-        dotsHtml += '</div>';
-      }
-      contestsHtml = `<div class="cell-bars-compact">${barsHtml}${dotsHtml}</div>`;
-    }
-
-    cell.innerHTML = `<div class="${dayClass}">${day}</div><div class="cell-contests">${contestsHtml}</div>`;
-    cell.addEventListener('click', () => {
-      gb.querySelectorAll('.calendar-cell').forEach(c => c.classList.remove('selected'));
-      cell.classList.add('selected');
-      showDetailsPanel(dtStr, dayContests, dayTrainingTasks);
-    });
-    gb.appendChild(cell);
-  }
-
-  const totalCells = startOffset + totalDays;
-  const remain = totalCells % 7;
-  if (remain !== 0) {
-    for (let i = 0; i < (7 - remain); i++) {
-      const emptyCell = document.createElement('div');
-      emptyCell.className = 'calendar-cell empty-cell';
-      gb.appendChild(emptyCell);
-    }
-  }
-}
-
-function showDetailsPanel(dateStr, dayContests, dayTrainingTasks) {
-  selectedDate.value = { label: dateStr };
-  nextTick(() => {
-    const dl = detailsList.value;
-    if (!dl) return;
-    dl.innerHTML = '';
-
-    if (dayContests.length === 0 && (!dayTrainingTasks || dayTrainingTasks.length === 0)) {
-      dl.innerHTML = '<div style="color: #888; font-size: 13px;">這天沒有比賽</div>';
-      return;
-    }
-
-    const now = new Date();
-
-    // Training tasks
-    if (dayTrainingTasks && dayTrainingTasks.length > 0) {
-      const trainingDiv = document.createElement('div');
-      trainingDiv.className = 'contest-item border-platform-training';
-      trainingDiv.style.flexDirection = 'column';
-      trainingDiv.style.alignItems = 'flex-start';
-      let html = '<div class="contest-title" style="margin-bottom: 8px;">練習計畫</div>';
-      dayTrainingTasks.forEach((task, idx) => {
-        const checked = task.completed ? 'checked' : '';
-        html += `<label class="todo-item" style="margin-left: 4px; display: block; margin-bottom: 4px;"><input type="checkbox" data-task-idx="${idx}" ${checked}><span class="todo-text">[${task.topic}] ${task.problem} (${task.source}) - ${task.difficulty}</span></label>`;
-      });
-      trainingDiv.innerHTML = html;
-      trainingDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', (e) => { dayTrainingTasks[cb.dataset.taskIdx].completed = e.target.checked; });
-      });
-      dl.appendChild(trainingDiv);
-    }
-
-    // Contests
-    dayContests.forEach(c => {
-      const itemDiv = document.createElement('div');
-      const pc = getPlatformClass(c.platform);
-      itemDiv.className = `contest-item border-${pc || 'platform-unknown'}`;
-      const startDt = c.startDt || parseDate(c.start_time);
-      const startStr = startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      const endDt = parseDate(c.end_time);
-      const endStr = endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      const timeLabel = `${startStr} — ${endStr} (${formatDuration(c.duration_minutes)})`;
-      const isFuture = startDt > now;
-      const wantBtn = isFuture ? `<button class="want-to-compete-btn">想打這場</button>` : '';
-      itemDiv.innerHTML = `<div class="contest-main"><div class="contest-title">${c.name}</div><div class="contest-time">${timeLabel}</div></div><div class="contest-actions">${wantBtn}<button class="open-link-btn" data-url="${c.url}">開啟</button></div>`;
-      itemDiv.querySelector('.open-link-btn').addEventListener('click', () => openExternal(c.url));
-      if (isFuture) {
-        const btn = itemDiv.querySelector('.want-to-compete-btn');
-        if (btn) btn.addEventListener('click', () => { calendarState.openRatingModal(c, trainingPlans, appSettings, renderCalendarGrid, passiveAgentCheck); });
-      }
-      dl.appendChild(itemDiv);
-    });
-  });
+function openRatingModal(c) {
+  selectedDay.value = null;
+  calendarState.openRatingModal(c, trainingPlans.value, appSettings, () => {}, passiveAgentCheck);
 }
 
 function passiveAgentCheck() {
-  if (!contestsCache) return;
   const now = new Date();
   let count = 0;
-  contestsCache.forEach(c => {
+  contestsCache.value.forEach(c => {
     const startDt = parseDate(c.start_time);
     if (startDt > now) {
       const daysUntil = Math.ceil((startDt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysUntil <= 3 && !trainingPlans.some(p => p.contestName === c.name)) count++;
+      if (daysUntil <= 3 && !trainingPlans.value.some(p => p.contestName === c.name)) count++;
     }
   });
   notificationText.value = count > 0 ? `3天內有 ${count} 場比賽尚未規劃，要安排練習嗎？` : '';
 }
 
 function handleNotificationClick() {
-  // Navigate to the first unplanned contest
   const now = new Date();
-  const first = contestsCache?.find(c => {
+  const first = contestsCache.value.find(c => {
     const sDt = parseDate(c.start_time);
     const dU = Math.ceil((sDt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return sDt > now && dU <= 3 && !trainingPlans.some(p => p.contestName === c.name);
+    return sDt > now && dU <= 3 && !trainingPlans.value.some(p => p.contestName === c.name);
   });
   if (first) {
     const targetDt = parseDate(first.start_time);
-    currentYear = targetDt.getFullYear();
-    currentMonth = targetDt.getMonth();
-    renderCalendarGrid();
+    currentYear.value = targetDt.getFullYear();
+    currentMonth.value = targetDt.getMonth();
+    selectedDay.value = targetDt.getDate();
+  }
+}
+
+function selectDay(day, event) {
+  selectedDay.value = day;
+  const cell = event.currentTarget;
+  const rect = cell.getBoundingClientRect();
+
+  // 1. 水平邊界檢測
+  let leftPos = rect.right + 8;
+  if (leftPos + 320 > window.innerWidth) {
+    leftPos = rect.left - 320 - 8; // 空間不夠放左邊
+  }
+
+  const style = {
+    left: `${leftPos}px`,
+  };
+
+  // 2. 垂直邊界檢測與動態高度
+  if (rect.top > window.innerHeight / 2) {
+    // 點擊在下半部：對齊格子的底部，卡片往上展開
+    style.bottom = `${window.innerHeight - rect.bottom}px`;
+    style.maxHeight = `${rect.bottom - 60}px`; // 預留頂部安全距離
+  } else {
+    // 點擊在上半部：對齊格子的頂部，卡片往下展開
+    style.top = `${rect.top}px`;
+    style.maxHeight = `${window.innerHeight - rect.top - 60}px`; // 預留底部安全距離
+  }
+
+  popoverStyle.value = style;
+}
+
+function handleClickOutside(e) {
+  if (!e.target.closest('.calendar-popover') && !e.target.closest('.calendar-cell')) {
+    selectedDay.value = null;
   }
 }
 
 onMounted(() => {
-  renderCalendarGrid();
-  if (!contestsCache) loadContests();
+  if (contestsCache.value.length === 0) loadContests();
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
