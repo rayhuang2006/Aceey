@@ -37,11 +37,11 @@
         </div>
         <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
         <div class="workspace-panel">
-          <div class="editor-container">
+          <div class="editor-container" :style="{ flex: `0 0 ${editorHeight}%` }">
             <EditorPane ref="editorPaneRef" />
           </div>
-          <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
-          <div class="testcase-container">
+          <div class="resizer-y" @mousedown.prevent="startResizeV" :class="{ active: isDraggingY }"></div>
+          <div class="testcase-container" style="flex: 1; min-height: 0;">
             <TestCasePanel />
           </div>
         </div>
@@ -78,6 +78,8 @@ import StatusBar from './components/StatusBar.vue';
 import { activeView, calendarActive, initApp, testCases, activeTcId } from './store';
 
 const editorPaneRef = ref(null);
+const editorHeight = ref(60);
+const isDraggingY = ref(false);
 
 onMounted(async () => {
   await initApp();
@@ -124,10 +126,9 @@ function openSettings() {
 
 // --- Resizer Logic ---
 let isResizingH = false;
-let isResizingV = false;
 
 function startResizeH() { isResizingH = true; document.body.style.cursor = 'col-resize'; }
-function startResizeV() { isResizingV = true; document.body.style.cursor = 'row-resize'; }
+function startResizeV() { isDraggingY.value = true; document.body.style.cursor = 'row-resize'; }
 
 function onMouseMove(e) {
   if (isResizingH) {
@@ -137,23 +138,22 @@ function onMouseMove(e) {
       if (pp) pp.style.flex = `0 0 ${pct}%`;
     }
   }
-  if (isResizingV) {
+  if (isDraggingY.value) {
     const ws = document.querySelector('.workspace-panel');
     if (!ws) return;
-    const offset = e.clientY - 40;
-    const pct = (offset / ws.clientHeight) * 100;
-    if (pct > 20 && pct < 80) {
-      const ep = document.querySelector('.editor-container');
-      const tcp = document.querySelector('.testcase-container');
-      if (ep) ep.style.flex = `0 0 ${pct}%`;
-      if (tcp) tcp.style.height = (100 - pct) + '%';
-    }
+    const rect = ws.getBoundingClientRect();
+    let newHeightPercentage = ((e.clientY - rect.top) / ws.clientHeight) * 100;
+    
+    if (newHeightPercentage < 20) newHeightPercentage = 20;
+    if (newHeightPercentage > 80) newHeightPercentage = 80;
+    
+    editorHeight.value = newHeightPercentage;
   }
 }
 
 function onMouseUp() {
   isResizingH = false;
-  isResizingV = false;
+  isDraggingY.value = false;
   document.body.style.cursor = 'default';
 }
 </script>

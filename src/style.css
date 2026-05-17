@@ -176,13 +176,16 @@ button#run-btn .icon {
   background-color: var(--accent-green);
 }
 
-.resizer-v {
-  height: 4px;
-  background-color: var(--bg-dark);
+.resizer-y {
+  height: 6px;
+  background-color: var(--border-color, #333);
   cursor: row-resize;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
-.resizer-v:hover {
+.resizer-y:hover, .resizer-y.active {
   background-color: var(--accent-green);
 }
 
