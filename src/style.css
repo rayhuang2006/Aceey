@@ -398,6 +398,8 @@ button#run-btn .icon {
 
 .calendar-cell.selected {
   background-color: #2a2a2a;
+  outline: 2px solid var(--accent-green, #4caf50);
+  outline-offset: -2px;
 }
 
 .calendar-cell.empty-cell {
