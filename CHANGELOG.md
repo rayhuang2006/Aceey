@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/rayhuang2006/Aceey/compare/v1.1.1...v1.2.0) (2026-05-17)
+
+
+### Features
+
+* **calendar:** implement popover layout with training tasks support ([bf26484](https://github.com/rayhuang2006/Aceey/commit/bf26484c724e4733c0118ec803022e521eafd404))
+* **ui:** enhance UX with transitions, loading states, and toast notifications ([b892ce7](https://github.com/rayhuang2006/Aceey/commit/b892ce753e06a3db602510cc08bd7fa6f0ecdfdb))
+
+
+### Bug Fixes
+
+* **calendar:** resolve Date parsing error and prevent loading deadlock in plan generation ([959f6f4](https://github.com/rayhuang2006/Aceey/commit/959f6f4ab6cfdf3a013d3a76e2e4ce1cebd21de7))
+* **ui:** resolve z-index conflict and optimize popover UX ([e222057](https://github.com/rayhuang2006/Aceey/commit/e22205715b039991bc7f917a4070042c7b2c74bf))
+
 ## [1.1.1](https://github.com/rayhuang2006/Aceey/compare/v1.1.0...v1.1.1) (2026-05-09)
 
 
