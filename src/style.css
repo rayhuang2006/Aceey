@@ -82,36 +82,60 @@ button#run-btn .icon {
 
 
 /* Main Layout */
-#main-content {
+.ide-layout {
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  height: calc(100% - 40px - 22px);
+  width: 100vw;
+  height: calc(100vh - 40px - 22px); /* 40px for toolbar, 22px for statusbar */
+  overflow: hidden;
+  background-color: var(--bg-dark);
 }
 
-#top-panels {
-  display: flex;
-  flex-grow: 1;
-  height: 70%;
-  min-height: 200px;
-}
-
-#problem-panel, #editor-panel {
-  display: flex;
-  flex-direction: column;
+/* 左半部：題目區 */
+.problem-panel {
+  flex: 0 0 45%; /* 固定佔比 45% */
   height: 100%;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-panel);
-  position: relative;
 }
 
-#problem-panel {
-  width: 40%;
-  min-width: 200px;
+/* 右半部：工作區 */
+.workspace-panel {
+  flex: 1; /* 佔據剩餘空間 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 右上：編輯器 */
+.editor-container {
+  flex: 1; /* 佔據多數空間 */
+  min-height: 50%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-panel);
+}
+
+/* 右下：測資面板 */
+.testcase-container {
+  height: 35%; /* 預設高度 */
+  min-height: 250px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-panel);
 }
 
 #editor-panel {
-  width: 60%;
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
 }
 
 .panel-header {
@@ -262,6 +286,7 @@ button#run-btn .icon {
 
 .tc-boxes {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 12px;
   flex-grow: 1;
@@ -271,6 +296,7 @@ button#run-btn .icon {
 
 .tc-box {
   flex: 1;
+  min-width: 150px;
   display: flex;
   flex-direction: column;
 }

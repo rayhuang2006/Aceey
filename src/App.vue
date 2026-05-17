@@ -31,14 +31,20 @@
 
     <!-- Main IDE Content (old_index.html lines 42-93) -->
     <Transition name="fade" mode="out-in">
-      <div id="main-content" v-if="activeView === 'ide'">
-        <div id="top-panels">
+      <div id="main-content" class="ide-layout" v-if="activeView === 'ide'">
+        <div class="problem-panel">
           <Sidebar />
-          <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
-          <EditorPane ref="editorPaneRef" />
         </div>
-        <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
-        <TestCasePanel />
+        <div id="resizer-horizontal" class="resizer" @mousedown="startResizeH"></div>
+        <div class="workspace-panel">
+          <div class="editor-container">
+            <EditorPane ref="editorPaneRef" />
+          </div>
+          <div id="resizer-vertical" class="resizer-v" @mousedown="startResizeV"></div>
+          <div class="testcase-container">
+            <TestCasePanel />
+          </div>
+        </div>
       </div>
 
       <!-- Calendar View (old_index.html lines 95-129) -->
@@ -116,7 +122,7 @@ function openSettings() {
   activeView.value = 'settings';
 }
 
-// --- Resizer Logic (from old main.js lines 850-893) ---
+// --- Resizer Logic ---
 let isResizingH = false;
 let isResizingV = false;
 
@@ -127,21 +133,19 @@ function onMouseMove(e) {
   if (isResizingH) {
     const pct = (e.clientX / window.innerWidth) * 100;
     if (pct > 10 && pct < 90) {
-      const pp = document.getElementById('problem-panel');
-      const ep = document.getElementById('editor-panel');
-      if (pp) pp.style.width = pct + '%';
-      if (ep) ep.style.width = (100 - pct) + '%';
+      const pp = document.querySelector('.problem-panel');
+      if (pp) pp.style.flex = `0 0 ${pct}%`;
     }
   }
   if (isResizingV) {
-    const mc = document.getElementById('main-content');
-    if (!mc) return;
+    const ws = document.querySelector('.workspace-panel');
+    if (!ws) return;
     const offset = e.clientY - 40;
-    const pct = (offset / mc.clientHeight) * 100;
+    const pct = (offset / ws.clientHeight) * 100;
     if (pct > 20 && pct < 80) {
-      const tp = document.getElementById('top-panels');
-      const tcp = document.getElementById('testcase-panel');
-      if (tp) tp.style.height = pct + '%';
+      const ep = document.querySelector('.editor-container');
+      const tcp = document.querySelector('.testcase-container');
+      if (ep) ep.style.flex = `0 0 ${pct}%`;
       if (tcp) tcp.style.height = (100 - pct) + '%';
     }
   }
