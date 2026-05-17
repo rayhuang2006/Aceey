@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/rayhuang2006/Aceey/compare/v1.2.0...v1.3.0) (2026-05-17)
+
+
+### Features
+
+* **editor:** implement dual-mode markdown and latex rendering for problem panel ([4c1375f](https://github.com/rayhuang2006/Aceey/commit/4c1375fb440c8546c91729b77fedbaf61ac0f901))
+* **sidebar:** implement robust markdown-it and texmath engine for flawless LaTeX rendering ([9cf7110](https://github.com/rayhuang2006/Aceey/commit/9cf7110f827d412b280b8995d8aad973e9913e41))
+
 ## [1.2.0](https://github.com/rayhuang2006/Aceey/compare/v1.1.1...v1.2.0) (2026-05-17)
 
 
