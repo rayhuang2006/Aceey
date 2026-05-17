@@ -26,22 +26,22 @@
       <span v-if="activeTC.time_ms > 0" class="summary-time"> · {{ activeTC.time_ms }}ms</span>
     </div>
 
-    <div id="tc-content">
-      <div class="tc-boxes" v-if="activeTC">
-        <div class="tc-box">
+    <div v-if="activeTC" class="testcase-body">
+      <div class="io-columns">
+        <div class="io-col">
           <label>Input</label>
           <textarea v-model="activeTC.input"></textarea>
         </div>
-        <div class="tc-box">
+        <div class="io-col">
           <label>Expected Output</label>
           <textarea v-model="activeTC.expected_output"></textarea>
         </div>
-        <div class="tc-box" v-if="['AC', 'WA', 'TLE', 'RE'].includes(activeTC.verdict)">
+        <div class="io-col" v-if="['AC', 'WA', 'TLE', 'RE'].includes(activeTC.verdict)">
           <label>Actual Output</label>
           <textarea :value="activeTC.actual_output" readonly></textarea>
         </div>
       </div>
-      <div v-if="activeTC && activeTC.error && ['CE', 'RE'].includes(activeTC.verdict)" class="error-block">
+      <div v-if="activeTC.error && ['CE', 'RE'].includes(activeTC.verdict)" class="error-block">
         {{ activeTC.error }}
       </div>
     </div>

@@ -188,10 +188,10 @@ button#run-btn .icon {
 
 /* Testcase Panel */
 #testcase-panel {
-  height: 30%;
-  min-height: 150px;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  width: 100%;
   background-color: var(--bg-panel);
 }
 
@@ -277,42 +277,42 @@ button#run-btn .icon {
 .summary-tle { color: #ffeb3b; }
 .summary-time { margin-left: 8px; opacity: 0.8; font-weight: normal; font-size: 11px; }
 
-#tc-content {
-  flex-grow: 1;
+.testcase-body {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.tc-boxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex: 1; /* 填滿外層容器 */
+  min-height: 0; /* 關鍵防護：不允許撐破父容器 */
   padding: 12px;
-  flex-grow: 1;
-  min-height: 0;
   box-sizing: border-box;
+  overflow: hidden; /* 我們不要它自己滾動，我們要內部元素壓縮 */
 }
 
-.tc-box {
+.io-columns {
+  display: flex;
+  gap: 12px;
+  flex: 1; /* 拿走剩下的所有空間 */
+  min-height: 0; /* 關鍵防護：允許被壓縮到極限 */
+  overflow: hidden; /* 不要讓文字框撐爆它 */
+}
+
+.io-col {
   flex: 1;
   min-width: 150px;
   display: flex;
   flex-direction: column;
 }
 
-.tc-box label {
+.io-col label {
   font-size: 12px;
   margin-bottom: 6px;
   color: #aaa;
 }
 
-.tc-box textarea {
-  width: 100%;
-  height: 100%;
+.io-col textarea {
+  flex: 1;
+  min-height: 0;
   resize: none;
   box-sizing: border-box;
-  flex-grow: 1;
   background-color: var(--bg-dark);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
@@ -322,20 +322,23 @@ button#run-btn .icon {
   outline: none;
 }
 
-.tc-box textarea:focus {
+.io-col textarea:focus {
   border-color: #555;
 }
 
 .error-block {
-  margin: 0 12px 12px 12px;
+  flex-shrink: 0; /* 絕對不允許被壓縮 */
+  margin-top: 12px;
+  margin-bottom: 0 !important;
   padding: 10px 14px;
   background: rgba(244, 67, 54, 0.08);
   border-left: 3px solid #f44336;
   font-family: Consolas, 'Fira Code', monospace;
-  font-size: 12px; color: #ff8a80;
+  font-size: 12px;
+  color: #ff8a80;
   border-radius: 0 4px 4px 0;
-  max-height: 80px; overflow-y: auto;
-  flex-shrink: 0;
+  max-height: 80px;
+  overflow-y: auto;
 }
 
 #tc-time {
