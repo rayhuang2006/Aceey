@@ -1,12 +1,27 @@
 <template>
   <div id="problem-panel">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     
     <div class="panel-header">
       <span>Problem Description</span>
-      <button class="toggle-btn" @click="isPreviewMode = !isPreviewMode">
-        {{ isPreviewMode ? '編輯 (Edit)' : '預覽 (Preview)' }}
-      </button>
+      <div class="view-toggle-group">
+        <button 
+          class="toggle-btn" 
+          :class="{ active: !isPreviewMode }" 
+          @click="isPreviewMode = false" 
+          title="編輯 (Edit)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+        </button>
+        
+        <div class="toggle-divider"></div>
+
+        <button 
+          class="toggle-btn" 
+          :class="{ active: isPreviewMode }" 
+          @click="isPreviewMode = true" 
+          title="預覽 (Preview)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
     </div>
     
     <div class="panel-content sidebar-content" id="problem-text">
@@ -28,30 +43,46 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Marked } from 'marked';
-import markedKatex from 'marked-katex-extension';
+import markdownit from 'markdown-it';
+import texmath from 'markdown-it-texmath';
+import katex from 'katex';
 import DOMPurify from 'dompurify';
+import 'katex/dist/katex.min.css';
 
 const isPreviewMode = ref(false);
 const rawMarkdown = ref("");
 
-// Setup marked with KaTeX support
-const marked = new Marked();
-marked.use(markedKatex({ 
-  throwOnError: false, 
-  displayMode: false 
-}));
+const md = markdownit({ html: true, linkify: true, typographer: true });
+
+md.use(texmath, {
+  engine: katex,
+  delimiters: 'dollars',
+  katexOptions: {
+    throwOnError: false,
+    strict: false,
+    trust: true,
+    output: 'htmlAndMathml',
+  },
+});
+
+const PURIFY_CONFIG = {
+  USE_PROFILES: { html: true },
+  ADD_TAGS: [
+    'semantics', 'annotation', 'math', 'mrow', 'mi', 'mo', 'mn',
+    'msup', 'msub', 'mfrac', 'munderover', 'mtd', 'mtr', 'mtable',
+    'mspace', 'msqrt', 'mover', 'munder', 'mpadded',
+  ],
+  ADD_ATTR: [
+    'aria-hidden', 'xmlns', 'mathvariant', 'encoding',
+    'displaystyle', 'scriptlevel', 'style', 'class',
+    'width', 'height', 'viewBox', 'fill', 'd',
+  ],
+};
 
 const renderedHtml = computed(() => {
-  if (!rawMarkdown.value) return "";
-  
-  const rawHtml = marked.parse(rawMarkdown.value);
-  
-  // Sanitize while preserving KaTeX elements
-  return DOMPurify.sanitize(rawHtml, {
-    ADD_TAGS: ['math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'ms', 'mspace', 'mtext', 'mfrac', 'msqrt', 'mroot', 'mstyle', 'merror', 'mpadded', 'mphantom', 'mfenced', 'menclose', 'msub', 'msup', 'msubsup', 'munder', 'mover', 'munderover', 'mmultiscripts', 'mtable', 'mtr', 'mtd', 'maligngroup', 'malignmark', 'annotation', 'annotation-xml'],
-    ADD_ATTR: ['mathvariant', 'display', 'xmlns', 'style', 'class', 'aria-hidden']
-  });
+  if (!rawMarkdown.value) return '';
+  const raw = md.render(rawMarkdown.value);
+  return DOMPurify.sanitize(raw, PURIFY_CONFIG);
 });
 </script>
 
@@ -71,20 +102,44 @@ const renderedHtml = computed(() => {
   border-bottom: 1px solid var(--border-color, #333);
 }
 
+.view-toggle-group {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-dark, #1e1e1e);
+  border: 1px solid var(--border-color, #454545);
+  border-radius: 6px;
+  padding: 2px;
+  height: fit-content;
+}
+
 .toggle-btn {
   background: transparent;
-  color: var(--accent-green, #4caf50);
-  border: 1px solid var(--accent-green, #4caf50);
+  border: none;
+  color: #888;
+  padding: 2px 8px;
   border-radius: 4px;
-  padding: 2px 12px;
-  font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .toggle-btn:hover {
-  background: var(--accent-green, #4caf50);
+  color: #ccc;
+}
+
+.toggle-btn.active {
+  background-color: #3a3d3e;
   color: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.toggle-divider {
+  width: 1px;
+  height: 12px;
+  background-color: var(--border-color, #454545);
+  margin: 0 2px;
 }
 
 #problem-text {
@@ -189,6 +244,7 @@ const renderedHtml = computed(() => {
 }
 
 .markdown-body :deep(.katex-display) {
+  margin: 1.2em 0;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 8px 0;
